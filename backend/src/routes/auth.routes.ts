@@ -1,8 +1,9 @@
 import { Router } from 'express';
 import {
-  sendVisitorOTP,
-  verifyVisitorOTP,
-  officialLogin,
+  register,
+  requestOtp,
+  verifyOtp,
+  login,
   verifyToken,
   registerPushToken,
 } from '../controllers/auth.controller';
@@ -10,9 +11,10 @@ import { authenticate } from '../middlewares/auth';
 
 const router = Router();
 
-router.post('/visitor/send-otp', sendVisitorOTP);
-router.post('/visitor/verify-otp', verifyVisitorOTP);
-router.post('/official/login', officialLogin);
+router.post('/register', register);
+router.post('/request-otp', requestOtp);
+router.post('/verify-otp', verifyOtp);
+router.post('/login', login);
 router.get('/verify-token', authenticate, verifyToken);
 router.post('/push-token', authenticate, registerPushToken);
 

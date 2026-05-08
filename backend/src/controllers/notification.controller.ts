@@ -17,10 +17,19 @@ export const sendNotification = async (req: Request, res: Response) => {
       await sendPushNotification(userId, title, body, data);
     } else if (role) {
       const users = await User.find({ role });
-      for (const u of users) {
-        await new Notification({ userId: u._id, title, body, data }).save();
-        await sendPushNotification(u._id.toString(), title, body, data);
+      if (users.length === 0) {
+        return res.json({ message: 'No users found with that role.' });
       }
+      // Prepare notifications for bulk insertion
+      const notifications = users.map(u => ({ userId: u._id, title, body, data }));
+      await Notification.insertMany(notifications);
+
+      // Send push notifications concurrently for better performance
+      const pushPromises = users.map(u =>
+        sendPushNotification(u._id.toString(), title, body, data)
+      );
+      await Promise.all(pushPromises);
+
     } else {
       return res.status(400).json({ message: 'userId or role required' });
     }

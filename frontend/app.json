@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "frontend",
-    "slug": "frontend",
+    "name": "Grievance Notification and Management Application",
+    "slug": "grievance-notification",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -43,6 +43,13 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "87721efe-8429-46fe-84bc-af9d288c1a8c"
+      }
+    },
+    "owner": "mrawesome"
   }
 }
