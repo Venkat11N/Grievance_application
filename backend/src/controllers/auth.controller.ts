@@ -7,11 +7,26 @@ import { generateOTP, verifyOTP } from '../services/otp';
 import { sendOTPEmail } from '../services/email';
 import { AuthRequest } from '../middlewares/auth';
 
+interface PendingRegistration {
+  name: string;
+  email: string;
+  mobile?: string;
+  role: 'seafarer' | 'official';
+}
+
+const pendingRegistrations = new Map<string, PendingRegistration>();
+
+const normalizeEmail = (email: string) => email.trim().toLowerCase();
+
 export const register = async (req: Request, res: Response) => {
-  const { name, email, mobile, role } = req.body;
+  const { name, mobile, role } = req.body;
+  const email = typeof req.body.email === 'string' ? normalizeEmail(req.body.email) : '';
   console.log('Register request:', { name, email, mobile, role });
   if (!name || !email || !role) {
     return res.status(400).json({ message: 'Name, email, and role are required' });
+  }
+  if (role !== 'seafarer' && role !== 'official') {
+    return res.status(400).json({ message: 'Invalid role' });
   }
   try {
     const existingUser = await User.findOne({ email });
@@ -20,6 +35,7 @@ export const register = async (req: Request, res: Response) => {
     }
 
     const otp = generateOTP(email);
+    pendingRegistrations.set(email, { name, email, mobile, role });
     console.log('Generated OTP for', email, ':', otp);
 
     try {
@@ -36,7 +52,7 @@ export const register = async (req: Request, res: Response) => {
 };
 
 export const requestOtp = async (req: Request, res: Response) => {
-  const { email } = req.body;
+  const email = typeof req.body.email === 'string' ? normalizeEmail(req.body.email) : '';
   console.log('Request OTP for:', email);
   if (!email) return res.status(400).json({ message: 'Email is required' });
   try {
@@ -63,7 +79,8 @@ export const requestOtp = async (req: Request, res: Response) => {
 };
 
 export const verifyOtp = async (req: Request, res: Response) => {
-  const { email, otp, mobile } = req.body;
+  const email = typeof req.body.email === 'string' ? normalizeEmail(req.body.email) : '';
+  const { otp, mobile } = req.body;
   console.log('Verify OTP request:', { email, otp, mobile });
   if (!email || !otp) return res.status(400).json({ message: 'Email and OTP required' });
   try {
@@ -74,16 +91,21 @@ export const verifyOtp = async (req: Request, res: Response) => {
     }
     let user = await User.findOne({ email });
     if (!user) {
-      // Create new seafarer if not exists
+      const pendingRegistration = pendingRegistrations.get(email);
+      if (!pendingRegistration) {
+        return res.status(400).json({ message: 'Registration details expired. Please register again.' });
+      }
+
       user = new User({
         email,
-        name: email.split('@')[0], // placeholder name
-        role: 'seafarer',
+        name: pendingRegistration.name,
+        role: pendingRegistration.role,
         isVerified: true,
       });
-      if (mobile) user.mobile = mobile;
+      if (pendingRegistration.mobile) user.mobile = pendingRegistration.mobile;
       await user.save();
       console.log('Created new user:', email);
+      pendingRegistrations.delete(email);
     } else if (mobile) {
       user.mobile = mobile;
       await user.save();
@@ -101,7 +123,8 @@ export const verifyOtp = async (req: Request, res: Response) => {
 };
 
 export const login = async (req: Request, res: Response) => {
-  const { email, otp } = req.body;
+  const email = typeof req.body.email === 'string' ? normalizeEmail(req.body.email) : '';
+  const { otp } = req.body;
   if (!email || !otp) return res.status(400).json({ message: 'Email and OTP required' });
   try {
     if (!verifyOTP(email, otp)) {
