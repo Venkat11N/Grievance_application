@@ -49,7 +49,7 @@ export default function VerifyOtpScreen() {
       
       <TextInput
         style={styles.input}
-        placeholder="Enter OTP (e.g. 780339)"
+        placeholder="Enter OTP (dev hint: 123456)"
         value={otp}
         onChangeText={setOtp}
         keyboardType="number-pad"

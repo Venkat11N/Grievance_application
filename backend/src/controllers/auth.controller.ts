@@ -22,13 +22,13 @@ export const register = async (req: Request, res: Response) => {
     const otp = generateOTP(email);
     console.log('Generated OTP for', email, ':', otp);
 
-    // Respond immediately so the frontend never times out
-    res.json({ message: 'OTP sent successfully', devOtp: otp });
-
-    // Fire-and-forget email in the background
-    sendOTPEmail(email, otp)
-      .then(() => console.log('OTP email sent to', email))
-      .catch((err: any) => console.error('Background email failed:', err.message));
+    try {
+      await sendOTPEmail(email, otp);
+      res.json({ message: 'OTP sent successfully' });
+    } catch (emailErr: any) {
+      console.error('Failed to send OTP email:', emailErr);
+      res.status(500).json({ message: 'Failed to send OTP email. Please check server logs.' });
+    }
   } catch (error) {
     console.error('Register error:', error);
     res.status(500).json({ message: 'Failed to send OTP' });
@@ -49,13 +49,13 @@ export const requestOtp = async (req: Request, res: Response) => {
     const otp = generateOTP(email);
     console.log('Generated OTP for', email, ':', otp);
 
-    // Respond immediately so the frontend never times out
-    res.json({ message: 'OTP sent successfully', devOtp: otp });
-
-    // Fire-and-forget email in the background
-    sendOTPEmail(email, otp)
-      .then(() => console.log('OTP email sent to', email))
-      .catch((err: any) => console.error('Background email failed:', err.message));
+    try {
+      await sendOTPEmail(email, otp);
+      res.json({ message: 'OTP sent successfully' });
+    } catch (emailErr: any) {
+      console.error('Failed to send OTP email:', emailErr);
+      res.status(500).json({ message: 'Failed to send OTP email. Please check server logs.' });
+    }
   } catch (error) {
     console.error('Request OTP error:', error);
     res.status(500).json({ message: 'Failed to send OTP' });
