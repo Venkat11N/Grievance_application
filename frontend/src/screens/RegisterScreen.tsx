@@ -23,7 +23,6 @@ export default function RegisterScreen() {
   const [otp, setOtp] = useState('');
   const [isOtpSent, setIsOtpSent] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [displayedOtp, setDisplayedOtp] = useState('');
 
   const handleRequestOtp = async () => {
     if (!name || !email || !role) {
@@ -33,15 +32,9 @@ export default function RegisterScreen() {
 
     setLoading(true);
     try {
-      const response = await authService.register({ name, email, mobile, role });
+      await authService.register({ name, email, mobile, role });
       setIsOtpSent(true);
-      const otpCode = response.devOtp || '';
-      setDisplayedOtp(otpCode);
-      if (otpCode) {
-        Alert.alert('OTP Generated', `Email delivery is blocked on this network.\n\nYour OTP is: ${otpCode}`);
-      } else {
-        Alert.alert('Success', 'OTP sent to your email');
-      }
+      Alert.alert('Success', 'OTP sent to your email');
     } catch (error: any) {
       const errorMsg = error.response?.data?.message || error.message || 'Failed to send OTP';
       Alert.alert('Error', errorMsg);
@@ -134,21 +127,14 @@ export default function RegisterScreen() {
       </View>
 
       {isOtpSent && (
-        <>
-          <TextInput
-            style={styles.input}
-            placeholder="Enter OTP *"
-            value={otp}
-            onChangeText={setOtp}
-            keyboardType="number-pad"
-            maxLength={6}
-          />
-          {displayedOtp ? (
-            <Text style={styles.otpCode}>
-              Your OTP: {displayedOtp}
-            </Text>
-          ) : null}
-        </>
+        <TextInput
+          style={styles.input}
+          placeholder="Enter OTP *"
+          value={otp}
+          onChangeText={setOtp}
+          keyboardType="number-pad"
+          maxLength={6}
+        />
       )}
 
       <TouchableOpacity
