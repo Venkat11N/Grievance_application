@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
+  BackHandler,
   View,
   Text,
   FlatList,
@@ -12,7 +13,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { notificationService, Notification } from '../services/notification';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import { authService } from '../services/auth';
 
@@ -26,6 +27,13 @@ export default function NotificationsScreen() {
     loadUserRole();
     fetchNotifications();
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      const subscription = BackHandler.addEventListener('hardwareBackPress', () => true);
+      return () => subscription.remove();
+    }, [])
+  );
 
   const loadUserRole = async () => {
     const role = await SecureStore.getItemAsync('userRole');

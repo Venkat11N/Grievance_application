@@ -80,7 +80,8 @@ export const requestOtp = async (req: Request, res: Response) => {
 
 export const verifyOtp = async (req: Request, res: Response) => {
   const email = typeof req.body.email === 'string' ? normalizeEmail(req.body.email) : '';
-  const { otp, mobile } = req.body;
+  const otp = typeof req.body.otp === 'string' ? req.body.otp.trim() : '';
+  const { mobile } = req.body;
   console.log('Verify OTP request:', { email, otp, mobile });
   if (!email || !otp) return res.status(400).json({ message: 'Email and OTP required' });
   try {
@@ -124,7 +125,7 @@ export const verifyOtp = async (req: Request, res: Response) => {
 
 export const login = async (req: Request, res: Response) => {
   const email = typeof req.body.email === 'string' ? normalizeEmail(req.body.email) : '';
-  const { otp } = req.body;
+  const otp = typeof req.body.otp === 'string' ? req.body.otp.trim() : '';
   if (!email || !otp) return res.status(400).json({ message: 'Email and OTP required' });
   try {
     if (!verifyOTP(email, otp)) {

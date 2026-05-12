@@ -9,6 +9,12 @@ const isDevelopment = process.env.NODE_ENV !== 'production';
 const magicOtpEnabled = process.env.ENABLE_MAGIC_OTP === 'true';
 const MAGIC_OTP = '123456';
 
+const maskEmail = (email: string) => {
+  const [name, domain] = email.split('@');
+  if (!name || !domain) return '[invalid-email]';
+  return `${name.slice(0, 2)}***@${domain}`;
+};
+
 export const generateOTP = (email: string): string => {
   let otp = '';
   do {
@@ -21,37 +27,38 @@ export const generateOTP = (email: string): string => {
 
 export const verifyOTP = (email: string, otp: string): boolean => {
   const entry = otpStore.get(email);
+  const maskedEmail = maskEmail(email);
 
   if (isDevelopment && magicOtpEnabled && otp === MAGIC_OTP) {
     if (!entry) {
-      console.log(`[OTP] Magic OTP rejected for ${email}: no prior OTP request found.`);
+      console.log(`[OTP] Magic OTP rejected for ${maskedEmail}: no prior OTP request found.`);
       return false;
     }
     if (entry.expiresAt <= new Date()) {
-      console.log(`[OTP] Magic OTP rejected for ${email}: OTP expired.`);
+      console.log(`[OTP] Magic OTP rejected for ${maskedEmail}: OTP expired.`);
       otpStore.delete(email);
       return false;
     }
-    console.log(`[OTP] Development shortcut: Used magic OTP for ${email}.`);
+    console.log(`[OTP] Development shortcut: Used magic OTP for ${maskedEmail}.`);
     otpStore.delete(email);
     return true;
   }
 
   if (!entry) {
-    console.log(`[OTP] Verification failed for ${email}: No OTP found in store.`);
+    console.log(`[OTP] Verification failed for ${maskedEmail}: No OTP found in store.`);
     return false;
   }
-  if (entry.expiresAt < new Date()) {
-    console.log(`[OTP] Verification failed for ${email}: OTP expired.`);
+  if (entry.expiresAt <= new Date()) {
+    console.log(`[OTP] Verification failed for ${maskedEmail}: OTP expired.`);
     otpStore.delete(email);
     return false;
   }
   if (entry.otp === otp) {
-    console.log(`[OTP] Verification successful for ${email}.`);
+    console.log(`[OTP] Verification successful for ${maskedEmail}.`);
     otpStore.delete(email);
     return true;
   }
 
-  console.log(`[OTP] Verification failed for ${email}: Invalid OTP provided.`);
+  console.log(`[OTP] Verification failed for ${maskedEmail}: Invalid OTP provided.`);
   return false;
 };

@@ -11,26 +11,31 @@ import {
   ScrollView,
   Platform,
 } from 'react-native';
+import { CommonActions } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as SecureStore from 'expo-secure-store';
 import { authService } from '../services/auth';
-import { router } from 'expo-router';
+import { router, useNavigation } from 'expo-router';
 
 export default function LoginScreen() {
+  const navigation = useNavigation();
   const [email, setEmail] = useState('');
   const [otp, setOtp] = useState('');
   const [isOtpSent, setIsOtpSent] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const handleRequestOtp = async () => {
-    if (!email) {
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!normalizedEmail) {
       Alert.alert('Error', 'Please enter your email');
       return;
     }
 
     setLoading(true);
     try {
-      await authService.requestOtp(email);
+      await authService.requestOtp(normalizedEmail);
+      setEmail(normalizedEmail);
+      setOtp('');
       setIsOtpSent(true);
       Alert.alert('Success', 'OTP sent to your email');
     } catch (error: any) {
@@ -41,18 +46,24 @@ export default function LoginScreen() {
   };
 
   const handleLogin = async () => {
-    if (!otp) {
+    const trimmedOtp = otp.trim();
+    if (!trimmedOtp) {
       Alert.alert('Error', 'Please enter OTP');
       return;
     }
 
     setLoading(true);
     try {
-      const response = await authService.login(email, otp);
+      const response = await authService.login(email, trimmedOtp);
       if (response.token) {
         await SecureStore.setItemAsync('authToken', response.token);
         await SecureStore.setItemAsync('userRole', response.user.role);
-        router.replace('/notifications' as any);
+        navigation.dispatch(
+          CommonActions.reset({
+            index: 0,
+            routes: [{ name: 'notifications' }],
+          })
+        );
       }
     } catch (error: any) {
       Alert.alert('Error', error.response?.data?.message || 'Login failed');
@@ -111,7 +122,13 @@ export default function LoginScreen() {
         )}
       </TouchableOpacity>
 
-      <TouchableOpacity onPress={() => router.push('/register' as any)}>
+      {isOtpSent && (
+        <TouchableOpacity onPress={handleRequestOtp} disabled={loading}>
+          <Text style={styles.secondaryLinkText}>Resend OTP</Text>
+        </TouchableOpacity>
+      )}
+
+      <TouchableOpacity onPress={() => router.replace('/register' as any)}>
         <Text style={styles.linkText}>Don&apos;t have an account? Register</Text>
       </TouchableOpacity>
       </ScrollView>
@@ -187,5 +204,11 @@ const styles = StyleSheet.create({
     color: '#1D4ED8',
     textAlign: 'center',
     marginTop: 20,
+  },
+  secondaryLinkText: {
+    color: '#1D4ED8',
+    fontWeight: '700',
+    marginTop: 14,
+    textAlign: 'center',
   },
 });

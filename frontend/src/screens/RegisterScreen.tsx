@@ -11,12 +11,14 @@ import {
   ScrollView,
   Platform,
 } from 'react-native';
+import { CommonActions } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as SecureStore from 'expo-secure-store';
 import { authService } from '../services/auth';
-import { router } from 'expo-router';
+import { router, useNavigation } from 'expo-router';
 
 export default function RegisterScreen() {
+  const navigation = useNavigation();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [mobile, setMobile] = useState('');
@@ -26,14 +28,17 @@ export default function RegisterScreen() {
   const [loading, setLoading] = useState(false);
 
   const handleRequestOtp = async () => {
-    if (!name || !email || !role) {
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!name.trim() || !normalizedEmail || !role) {
       Alert.alert('Error', 'Please fill all required fields');
       return;
     }
 
     setLoading(true);
     try {
-      await authService.register({ name, email, mobile, role });
+      await authService.register({ name: name.trim(), email: normalizedEmail, mobile, role });
+      setEmail(normalizedEmail);
+      setOtp('');
       setIsOtpSent(true);
       Alert.alert('Success', 'OTP sent to your email');
     } catch (error: any) {
@@ -45,18 +50,24 @@ export default function RegisterScreen() {
   };
 
   const handleRegister = async () => {
-    if (!otp) {
+    const trimmedOtp = otp.trim();
+    if (!trimmedOtp) {
       Alert.alert('Error', 'Please enter OTP');
       return;
     }
 
     setLoading(true);
     try {
-      const response = await authService.verifyOtp(email, otp, mobile);
+      const response = await authService.verifyOtp(email, trimmedOtp, mobile);
       if (response.token) {
         await SecureStore.setItemAsync('authToken', response.token);
         await SecureStore.setItemAsync('userRole', role);
-        router.replace('/notifications' as any);
+        navigation.dispatch(
+          CommonActions.reset({
+            index: 0,
+            routes: [{ name: 'notifications' }],
+          })
+        );
       }
     } catch (error: any) {
       Alert.alert('Error', error.response?.data?.message || 'Registration failed');
@@ -158,7 +169,13 @@ export default function RegisterScreen() {
         )}
       </TouchableOpacity>
 
-      <TouchableOpacity onPress={() => router.back()}>
+      {isOtpSent && (
+        <TouchableOpacity onPress={handleRequestOtp} disabled={loading}>
+          <Text style={styles.secondaryLinkText}>Resend OTP</Text>
+        </TouchableOpacity>
+      )}
+
+      <TouchableOpacity onPress={() => router.replace('/login' as any)}>
         <Text style={styles.linkText}>Already have an account? Login</Text>
       </TouchableOpacity>
       </ScrollView>
@@ -266,5 +283,11 @@ const styles = StyleSheet.create({
     color: '#1D4ED8',
     textAlign: 'center',
     marginTop: 20,
+  },
+  secondaryLinkText: {
+    color: '#1D4ED8',
+    fontWeight: '700',
+    marginTop: 14,
+    textAlign: 'center',
   },
 });

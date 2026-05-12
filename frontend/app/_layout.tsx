@@ -5,10 +5,10 @@ export default function RootLayout() {
   return (
     <AuthProvider>
       <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="index" />
-        <Stack.Screen name="login" />
-        <Stack.Screen name="register" />
-        <Stack.Screen name="notifications" />
+        <Stack.Screen name="index" options={{ gestureEnabled: false }} />
+        <Stack.Screen name="login" options={{ gestureEnabled: false }} />
+        <Stack.Screen name="register" options={{ gestureEnabled: false }} />
+        <Stack.Screen name="notifications" options={{ gestureEnabled: false }} />
         <Stack.Screen name="notification/[id]" />
       </Stack>
     </AuthProvider>
