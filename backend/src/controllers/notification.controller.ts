@@ -174,3 +174,64 @@ export const getMyNotifications = async (req: AuthRequest, res: Response) => {
     res.status(500).json({ message: 'Failed to fetch notifications' });
   }
 };
+
+// Mark notification as read
+export const markAsRead = async (req: AuthRequest, res: Response) => {
+  const { notificationId } = req.params;
+  const user = req.user!;
+
+  try {
+    const notification = await Notification.findOne({ _id: notificationId, userId: user._id });
+    if (!notification) {
+      return res.status(404).json({ message: 'Notification not found' });
+    }
+
+    notification.read = true;
+    await notification.save();
+
+    res.json({ message: 'Notification marked as read' });
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to mark notification as read' });
+  }
+};
+
+// Send test notification after login (for development testing)
+export const sendTestNotification = async (userId: string, userRole: string) => {
+  // Only send test notifications in development
+  if (process.env.NODE_ENV === 'production') return;
+
+  // Wait 5 seconds after login
+  setTimeout(async () => {
+    try {
+      const testNotification = {
+        userId,
+        title: userRole === 'official' 
+          ? 'New grievance assigned' 
+          : 'Case update received',
+        body: userRole === 'official'
+          ? 'A seafarer has submitted a wage dispute requiring your review. This is a test notification.'
+          : 'Your grievance has been reviewed and forwarded to port authority. This is a test notification.',
+        data: {
+          referenceNo: 'TEST-' + Date.now().toString().slice(-6),
+          category: 'Test',
+          priority: 'Normal',
+          status: 'Test Notification'
+        }
+      };
+
+      const savedNotification = await new Notification(testNotification).save();
+      
+      // Include notificationId in push notification data for navigation
+      const pushData = {
+        ...testNotification.data,
+        notificationId: savedNotification._id.toString()
+      };
+      
+      await sendPushNotification(userId, testNotification.title, testNotification.body, pushData);
+      
+      console.log(`[TEST] Notification sent to ${userRole}:`, testNotification.title);
+    } catch (error) {
+      console.error('[TEST] Failed to send test notification:', error);
+    }
+  }, 5000); // 5 seconds delay
+};

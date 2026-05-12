@@ -1,6 +1,6 @@
 import axios from 'axios';
-import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
+import { appStorage } from './storage';
 
 // For Android emulator, use 10.0.2.2 instead of localhost
 // For iOS simulator, localhost works
@@ -29,7 +29,7 @@ const api = axios.create({
 // Add auth token to requests
 api.interceptors.request.use(async (config) => {
   console.log('API Request:', config.method?.toUpperCase(), config.url, config.data);
-  const token = await SecureStore.getItemAsync('authToken');
+  const token = await appStorage.getItem('authToken');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }

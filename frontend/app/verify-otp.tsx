@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, StyleSheet, Alert, ActivityIndicator, TouchableOpacity, TouchableWithoutFeedback, Keyboard } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import * as SecureStore from 'expo-secure-store';
 import { authService } from '../src/services/auth';
+import { appStorage } from '../src/services/storage';
 
 const magicOtpHintEnabled = process.env.EXPO_PUBLIC_ENABLE_MAGIC_OTP === 'true';
 
@@ -36,7 +36,7 @@ export default function VerifyOtpScreen() {
     try {
       setLoading(true);
       const response = await authService.verifyOtp(email, otp);
-      await SecureStore.setItemAsync('authToken', response.token);
+      await appStorage.setItem('authToken', response.token);
       Alert.alert('Success', 'Verified successfully!');
       router.replace('/notifications' as any);
     } catch (error: any) {

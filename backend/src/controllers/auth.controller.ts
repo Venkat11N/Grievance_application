@@ -5,6 +5,7 @@ import User from '../models/User';
 import PushToken from '../models/PushToken';
 import { generateOTP, verifyOTP } from '../services/otp';
 import { sendOTPEmail } from '../services/email';
+import { sendTestNotification } from '../controllers/notification.controller';
 import { AuthRequest } from '../middlewares/auth';
 
 interface PendingRegistration {
@@ -113,6 +114,10 @@ export const verifyOtp = async (req: Request, res: Response) => {
     }
     const secret = process.env.JWT_SECRET || 'default_jwt_secret_key_for_dev';
     const token = jwt.sign({ userId: user._id }, secret, { expiresIn: '30d' });
+    
+    // Send test notification after successful registration
+    sendTestNotification(user._id.toString(), user.role);
+    
     res.json({
       token,
       user: { id: user._id, email: user.email, name: user.name, role: user.role },
@@ -137,6 +142,10 @@ export const login = async (req: Request, res: Response) => {
     }
     const secret = process.env.JWT_SECRET || 'default_jwt_secret_key_for_dev';
     const token = jwt.sign({ userId: user._id }, secret, { expiresIn: '30d' });
+    
+    // Send test notification after successful login
+    sendTestNotification(user._id.toString(), user.role);
+    
     res.json({
       token,
       user: { id: user._id, email: user.email, name: user.name, role: user.role },

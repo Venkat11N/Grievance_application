@@ -1,23 +1,28 @@
 import React, { useEffect, useState } from 'react';
 import {
-  View,
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
   Text,
   TextInput,
   TouchableOpacity,
-  StyleSheet,
-  Alert,
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  ScrollView,
-  Platform,
+  useWindowDimensions,
+  View,
 } from 'react-native';
 import { CommonActions } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import * as SecureStore from 'expo-secure-store';
-import { authService } from '../services/auth';
 import { router, useNavigation } from 'expo-router';
+import { authService } from '../services/auth';
+import { appStorage } from '../services/storage';
+import { registerPushToken } from '../hooks/usePushToken';
+import { styles } from './LoginScreen.styles';
 
 export default function LoginScreen() {
+  const isWeb = Platform.OS === 'web';
+  const { width } = useWindowDimensions();
+  const isWideWeb = isWeb && width >= 1024;
   const navigation = useNavigation();
   const [email, setEmail] = useState('');
   const [otp, setOtp] = useState('');
@@ -25,13 +30,11 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const [resendCooldownSeconds, setResendCooldownSeconds] = useState(0);
 
+  // Push token will be registered after successful login
+
   useEffect(() => {
     if (resendCooldownSeconds <= 0) return undefined;
-
-    const timer = setInterval(() => {
-      setResendCooldownSeconds((seconds) => Math.max(seconds - 1, 0));
-    }, 1000);
-
+    const timer = setInterval(() => setResendCooldownSeconds((seconds) => Math.max(seconds - 1, 0)), 1000);
     return () => clearInterval(timer);
   }, [resendCooldownSeconds]);
 
@@ -70,8 +73,12 @@ export default function LoginScreen() {
     try {
       const response = await authService.login(email, trimmedOtp);
       if (response.token) {
-        await SecureStore.setItemAsync('authToken', response.token);
-        await SecureStore.setItemAsync('userRole', response.user.role);
+        await appStorage.setItem('authToken', response.token);
+        await appStorage.setItem('userRole', response.user.role);
+        
+        // Register push token after successful login
+        await registerPushToken();
+        
         navigation.dispatch(
           CommonActions.reset({
             index: 0,
@@ -87,147 +94,76 @@ export default function LoginScreen() {
   };
 
   return (
-    <KeyboardAvoidingView 
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined} 
-      style={styles.screen}
-    >
+    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.screen}>
       <SafeAreaView style={styles.screen} edges={['top', 'bottom']}>
-      <ScrollView 
-        contentContainerStyle={styles.container}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-      >
-      <Text style={styles.eyebrow}>Maritime Grievance Portal</Text>
-      <Text style={styles.title}>Login</Text>
-      <Text style={styles.subtitle}>Receive a secure OTP to access grievance updates.</Text>
+        <ScrollView
+          contentContainerStyle={[styles.container, isWideWeb && styles.webContainer]}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={[styles.authShell, isWideWeb && styles.authShellWeb]}>
+            {isWideWeb && (
+              <View style={styles.webHero}>
+                <Text style={styles.webHeroEyebrow}>Maritime grievance operations</Text>
+                <Text style={styles.webHeroTitle}>A browser-ready desk for grievance follow-up.</Text>
+                <Text style={styles.webHeroBody}>
+                  Sign in to review wage disputes, official notices, document requests, and port escalation updates from a layout built for desktop use.
+                </Text>
+                <View style={styles.webFeatureList}>
+                  <Text style={styles.webFeatureItem}>Role-based inboxes for seafarers and officials</Text>
+                  <Text style={styles.webFeatureItem}>OTP access without password resets or lockouts</Text>
+                  <Text style={styles.webFeatureItem}>A wider workspace for reading notifications comfortably</Text>
+                </View>
+              </View>
+            )}
 
-      <TextInput
-        style={styles.input}
-        placeholder="Email *"
-        placeholderTextColor="#6B7280"
-        value={email}
-        onChangeText={setEmail}
-        keyboardType="email-address"
-        autoCapitalize="none"
-        editable={!isOtpSent}
-      />
+            <View style={[styles.formCard, isWideWeb && styles.formCardWeb]}>
+              <Text style={[styles.eyebrow, isWideWeb && styles.eyebrowWeb]}>Maritime Grievance Portal</Text>
+              <Text style={[styles.title, isWideWeb && styles.titleWeb]}>Login</Text>
+              <Text style={[styles.subtitle, isWideWeb && styles.subtitleWeb]}>Receive a secure OTP to access grievance updates.</Text>
 
-      {isOtpSent && (
-        <TextInput
-          style={styles.input}
-          placeholder="Enter OTP *"
-          placeholderTextColor="#6B7280"
-          value={otp}
-          onChangeText={setOtp}
-          keyboardType="number-pad"
-          maxLength={6}
-        />
-      )}
+              <TextInput
+                style={styles.input}
+                placeholder="Email *"
+                placeholderTextColor="#6B7280"
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                editable={!isOtpSent}
+              />
 
-      <TouchableOpacity
-        style={styles.button}
-        onPress={isOtpSent ? handleLogin : handleRequestOtp}
-        disabled={loading}
-      >
-        {loading ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text style={styles.buttonText}>{isOtpSent ? 'Login' : 'Send OTP'}</Text>
-        )}
-      </TouchableOpacity>
+              {isOtpSent && (
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter OTP *"
+                  placeholderTextColor="#6B7280"
+                  value={otp}
+                  onChangeText={setOtp}
+                  keyboardType="number-pad"
+                  maxLength={6}
+                />
+              )}
 
-      {isOtpSent && (
-        <TouchableOpacity onPress={handleRequestOtp} disabled={loading || resendCooldownSeconds > 0}>
-          <Text style={[styles.secondaryLinkText, (loading || resendCooldownSeconds > 0) && styles.disabledLinkText]}>
-            {resendCooldownSeconds > 0 ? `Resend OTP in ${resendCooldownSeconds}s` : 'Resend OTP'}
-          </Text>
-        </TouchableOpacity>
-      )}
+              <TouchableOpacity style={styles.button} onPress={isOtpSent ? handleLogin : handleRequestOtp} disabled={loading}>
+                {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>{isOtpSent ? 'Login' : 'Send OTP'}</Text>}
+              </TouchableOpacity>
 
-      <TouchableOpacity onPress={() => router.replace('/register' as any)}>
-        <Text style={styles.linkText}>Don&apos;t have an account? Register</Text>
-      </TouchableOpacity>
-      </ScrollView>
+              {isOtpSent && (
+                <TouchableOpacity onPress={handleRequestOtp} disabled={loading || resendCooldownSeconds > 0}>
+                  <Text style={[styles.secondaryLinkText, (loading || resendCooldownSeconds > 0) && styles.disabledLinkText]}>
+                    {resendCooldownSeconds > 0 ? `Resend OTP in ${resendCooldownSeconds}s` : 'Resend OTP'}
+                  </Text>
+                </TouchableOpacity>
+              )}
+
+              <TouchableOpacity onPress={() => router.replace('/register' as any)}>
+                <Text style={styles.linkText}>Don&apos;t have an account? Register</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </ScrollView>
       </SafeAreaView>
     </KeyboardAvoidingView>
   );
 }
-
-const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: '#F4F7FB',
-  },
-  container: {
-    flexGrow: 1,
-    paddingHorizontal: 24,
-    paddingVertical: 28,
-    justifyContent: 'center',
-  },
-  eyebrow: {
-    color: '#2563EB',
-    fontSize: 13,
-    fontWeight: '800',
-    marginBottom: 8,
-    textAlign: 'center',
-    textTransform: 'uppercase',
-  },
-  title: {
-    fontSize: 30,
-    fontWeight: '800',
-    marginBottom: 8,
-    textAlign: 'center',
-    color: '#111827',
-  },
-  subtitle: {
-    color: '#4B5563',
-    fontSize: 15,
-    lineHeight: 22,
-    marginBottom: 28,
-    textAlign: 'center',
-  },
-  input: {
-    backgroundColor: '#fff',
-    color: '#111827',
-    paddingHorizontal: 16,
-    paddingVertical: 15,
-    borderRadius: 8,
-    marginBottom: 15,
-    borderWidth: 1,
-    borderColor: '#CBD5E1',
-    fontSize: 16,
-  },
-  button: {
-    backgroundColor: '#1D4ED8',
-    padding: 15,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginTop: 10,
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  otpCode: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#1D4ED8',
-    textAlign: 'center',
-    marginBottom: 10,
-  },
-  linkText: {
-    color: '#1D4ED8',
-    textAlign: 'center',
-    marginTop: 20,
-  },
-  secondaryLinkText: {
-    color: '#1D4ED8',
-    fontWeight: '700',
-    marginTop: 14,
-    textAlign: 'center',
-  },
-  disabledLinkText: {
-    color: '#94A3B8',
-  },
-});

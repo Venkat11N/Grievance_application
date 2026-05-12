@@ -1,5 +1,5 @@
 import api from './api';
-import * as SecureStore from 'expo-secure-store';
+import { appStorage } from './storage';
 
 interface RegisterData {
   name: string;
@@ -75,8 +75,8 @@ export const authService = {
   logout: async () => {
     console.log('Frontend: Logging out');
     try {
-      await SecureStore.deleteItemAsync('authToken');
-      await SecureStore.deleteItemAsync('userRole');
+      await appStorage.deleteItem('authToken');
+      await appStorage.deleteItem('userRole');
       console.log('Frontend: Logout successful');
     } catch (error) {
       console.error('Frontend: Logout error:', error);
