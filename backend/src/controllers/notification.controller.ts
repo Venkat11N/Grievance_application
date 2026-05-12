@@ -4,6 +4,90 @@ import User from '../models/User';
 import { sendPushNotification } from '../services/push';
 import { AuthRequest } from '../middlewares/auth';
 
+const getSampleNotifications = (userId: string, role: string) => {
+  if (role === 'official') {
+    return [
+      {
+        userId,
+        title: 'New wage grievance assigned',
+        body: 'A seafarer has submitted a wage delay grievance for MV Ocean Pearl. Please review the documents and acknowledge within 24 hours.',
+        data: {
+          referenceNo: 'GRV-2026-0142',
+          category: 'Wage Dispute',
+          vessel: 'MV Ocean Pearl',
+          priority: 'High',
+          status: 'Pending Review',
+        },
+      },
+      {
+        userId,
+        title: 'Safety complaint escalated',
+        body: 'A safety equipment complaint at Port Blair has crossed the response SLA and needs official action.',
+        data: {
+          referenceNo: 'GRV-2026-0138',
+          category: 'Safety',
+          port: 'Port Blair',
+          priority: 'Critical',
+          status: 'Escalated',
+        },
+      },
+      {
+        userId,
+        title: 'Hearing reminder',
+        body: 'Reminder: Conciliation hearing for a contract dispute is scheduled tomorrow at 11:00 AM.',
+        data: {
+          referenceNo: 'GRV-2026-0119',
+          category: 'Contract',
+          meetingMode: 'Video Conference',
+          status: 'Scheduled',
+        },
+      },
+    ];
+  }
+
+  return [
+    {
+      userId,
+      title: 'Grievance received',
+      body: 'Your complaint about delayed wages has been received and assigned to a grievance officer.',
+      data: {
+        referenceNo: 'GRV-2026-0142',
+        category: 'Wage Dispute',
+        vessel: 'MV Ocean Pearl',
+        status: 'Submitted',
+      },
+    },
+    {
+      userId,
+      title: 'Document request',
+      body: 'Please upload your latest contract copy and salary slip to continue processing your grievance.',
+      data: {
+        referenceNo: 'GRV-2026-0142',
+        requiredBy: '15 May 2026',
+        status: 'Action Required',
+      },
+    },
+    {
+      userId,
+      title: 'Case update',
+      body: 'Your welfare grievance has been forwarded to the concerned port authority for response.',
+      data: {
+        referenceNo: 'GRV-2026-0127',
+        category: 'Welfare',
+        port: 'Chennai',
+        status: 'Forwarded',
+      },
+    },
+  ];
+};
+
+const ensureSampleNotifications = async (user: any) => {
+  const existingCount = await Notification.countDocuments({ userId: user._id });
+  if (existingCount > 0) return;
+
+  await Notification.insertMany(getSampleNotifications(user._id, user.role));
+};
+
 // This endpoint is meant to be called by the external grievance system.
 // It receives either a specific userId, or a role to broadcast to all users of that role.
 export const sendNotification = async (req: Request, res: Response) => {
@@ -44,6 +128,8 @@ export const sendNotification = async (req: Request, res: Response) => {
 export const getMyNotifications = async (req: AuthRequest, res: Response) => {
   const user = req.user!;
   try {
+    await ensureSampleNotifications(user);
+
     const notifications = await Notification.find({ userId: user._id })
       .sort({ createdAt: -1 })
       .limit(50);
