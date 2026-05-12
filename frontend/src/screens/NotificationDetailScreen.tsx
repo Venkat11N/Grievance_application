@@ -71,7 +71,7 @@ export default function NotificationDetailScreen() {
         <View style={styles.content}>
           <Text style={styles.body}>{notification.body}</Text>
 
-          {notification.data && Object.keys(notification.data).length > 0 && (
+          {detailEntries.length > 0 && (
             <View style={styles.dataContainer}>
               <Text style={styles.dataTitle}>Case details</Text>
               {detailEntries.map(([key, value]) => (

@@ -4,5 +4,7 @@
 // EMAIL_USER=youremail@gmail.com
 // EMAIL_PASS=your_app_password
 // ENABLE_EMAIL_DELIVERY=true
+// FEATURE_FLAG_SAMPLE_NOTIFICATIONS=false # Enables sample grievance notifications for local/demo users.
+// ALLOW_INSECURE_SMTP_TLS=false # Non-production/testing only: disables SMTP TLS certificate verification when true.
 // ENABLE_MAGIC_OTP=false # Enables/disables the local-only 123456 OTP shortcut.
 // EXPO_ACCESS_TOKEN=your_expo_access_token (from expo.dev)

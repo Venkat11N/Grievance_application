@@ -10,9 +10,14 @@ interface RegisterData {
 
 export const authService = {
   register: async (data: RegisterData) => {
-    console.log('Frontend: Calling register API with:', data);
+    const payload = {
+      ...data,
+      email: data.email.trim().toLowerCase(),
+      mobile: data.mobile?.trim(),
+    };
+    console.log('Frontend: Calling register API with:', payload);
     try {
-      const response = await api.post('/auth/register', data);
+      const response = await api.post('/auth/register', payload);
       console.log('Frontend: Register API response:', response.data);
       return response.data;
     } catch (error: any) {
@@ -22,9 +27,10 @@ export const authService = {
   },
 
   requestOtp: async (email: string) => {
-    console.log('Frontend: Calling requestOtp API with:', email);
+    const normalizedEmail = email.trim().toLowerCase();
+    console.log('Frontend: Calling requestOtp API with:', normalizedEmail);
     try {
-      const response = await api.post('/auth/request-otp', { email });
+      const response = await api.post('/auth/request-otp', { email: normalizedEmail });
       console.log('Frontend: RequestOtp API response:', response.data);
       return response.data;
     } catch (error: any) {
@@ -34,9 +40,14 @@ export const authService = {
   },
 
   verifyOtp: async (email: string, otp: string, mobile?: string) => {
-    console.log('Frontend: Calling verifyOtp API with:', { email, otp, mobile });
+    const payload = {
+      email: email.trim().toLowerCase(),
+      otp: otp.trim(),
+      mobile: mobile?.trim(),
+    };
+    console.log('Frontend: Calling verifyOtp API with:', { email: payload.email, otpLength: payload.otp.length, mobile: payload.mobile });
     try {
-      const response = await api.post('/auth/verify-otp', { email, otp, mobile });
+      const response = await api.post('/auth/verify-otp', payload);
       console.log('Frontend: VerifyOtp API response:', response.data);
       return response.data;
     } catch (error: any) {
@@ -46,9 +57,13 @@ export const authService = {
   },
 
   login: async (email: string, otp: string) => {
-    console.log('Frontend: Calling login API with:', { email, otp });
+    const payload = {
+      email: email.trim().toLowerCase(),
+      otp: otp.trim(),
+    };
+    console.log('Frontend: Calling login API with:', { email: payload.email, otpLength: payload.otp.length });
     try {
-      const response = await api.post('/auth/login', { email, otp });
+      const response = await api.post('/auth/login', payload);
       console.log('Frontend: Login API response:', response.data);
       return response.data;
     } catch (error: any) {

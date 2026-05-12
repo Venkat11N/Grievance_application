@@ -1,8 +1,12 @@
 import { Request, Response } from 'express';
 import Notification from '../models/Notification';
+import UserNotificationSeed from '../models/UserNotificationSeed';
 import User from '../models/User';
 import { sendPushNotification } from '../services/push';
 import { AuthRequest } from '../middlewares/auth';
+
+const sampleNotificationsEnabled =
+  process.env.NODE_ENV !== 'production' || process.env.FEATURE_FLAG_SAMPLE_NOTIFICATIONS === 'true';
 
 const getSampleNotifications = (userId: string, role: string) => {
   if (role === 'official') {
@@ -82,8 +86,13 @@ const getSampleNotifications = (userId: string, role: string) => {
 };
 
 const ensureSampleNotifications = async (user: any) => {
-  const existingCount = await Notification.countDocuments({ userId: user._id });
-  if (existingCount > 0) return;
+  const seedResult = await UserNotificationSeed.findOneAndUpdate(
+    { userId: user._id },
+    { $setOnInsert: { userId: user._id } },
+    { upsert: true, new: false, includeResultMetadata: true }
+  );
+
+  if (!seedResult.lastErrorObject?.upserted) return;
 
   await Notification.insertMany(getSampleNotifications(user._id, user.role));
 };
@@ -128,7 +137,9 @@ export const sendNotification = async (req: Request, res: Response) => {
 export const getMyNotifications = async (req: AuthRequest, res: Response) => {
   const user = req.user!;
   try {
-    await ensureSampleNotifications(user);
+    if (sampleNotificationsEnabled) {
+      await ensureSampleNotifications(user);
+    }
 
     const notifications = await Notification.find({ userId: user._id })
       .sort({ createdAt: -1 })
