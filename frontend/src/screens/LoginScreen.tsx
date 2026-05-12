@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -23,8 +23,21 @@ export default function LoginScreen() {
   const [otp, setOtp] = useState('');
   const [isOtpSent, setIsOtpSent] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [resendCooldownSeconds, setResendCooldownSeconds] = useState(0);
+
+  useEffect(() => {
+    if (resendCooldownSeconds <= 0) return undefined;
+
+    const timer = setInterval(() => {
+      setResendCooldownSeconds((seconds) => Math.max(seconds - 1, 0));
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [resendCooldownSeconds]);
 
   const handleRequestOtp = async () => {
+    if (isOtpSent && resendCooldownSeconds > 0) return;
+
     const normalizedEmail = email.trim().toLowerCase();
     if (!normalizedEmail) {
       Alert.alert('Error', 'Please enter your email');
@@ -37,6 +50,7 @@ export default function LoginScreen() {
       setEmail(normalizedEmail);
       setOtp('');
       setIsOtpSent(true);
+      setResendCooldownSeconds(30);
       Alert.alert('Success', 'OTP sent to your email');
     } catch (error: any) {
       Alert.alert('Error', error.response?.data?.message || error.message || 'Failed to send OTP');
@@ -123,8 +137,10 @@ export default function LoginScreen() {
       </TouchableOpacity>
 
       {isOtpSent && (
-        <TouchableOpacity onPress={handleRequestOtp} disabled={loading}>
-          <Text style={styles.secondaryLinkText}>Resend OTP</Text>
+        <TouchableOpacity onPress={handleRequestOtp} disabled={loading || resendCooldownSeconds > 0}>
+          <Text style={[styles.secondaryLinkText, (loading || resendCooldownSeconds > 0) && styles.disabledLinkText]}>
+            {resendCooldownSeconds > 0 ? `Resend OTP in ${resendCooldownSeconds}s` : 'Resend OTP'}
+          </Text>
         </TouchableOpacity>
       )}
 
@@ -210,5 +226,8 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     marginTop: 14,
     textAlign: 'center',
+  },
+  disabledLinkText: {
+    color: '#94A3B8',
   },
 });

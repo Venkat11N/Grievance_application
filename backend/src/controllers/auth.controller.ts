@@ -36,7 +36,7 @@ export const register = async (req: Request, res: Response) => {
 
     const otp = generateOTP(email);
     pendingRegistrations.set(email, { name, email, mobile, role });
-    console.log('Generated OTP for', email, ':', otp);
+    console.log('Generated OTP for registration:', { email, otpLength: otp.length });
 
     try {
       await sendOTPEmail(email, otp);
@@ -63,7 +63,7 @@ export const requestOtp = async (req: Request, res: Response) => {
     }
 
     const otp = generateOTP(email);
-    console.log('Generated OTP for', email, ':', otp);
+    console.log('Generated OTP for login:', { email, otpLength: otp.length });
 
     try {
       await sendOTPEmail(email, otp);
@@ -82,7 +82,7 @@ export const verifyOtp = async (req: Request, res: Response) => {
   const email = typeof req.body.email === 'string' ? normalizeEmail(req.body.email) : '';
   const otp = typeof req.body.otp === 'string' ? req.body.otp.trim() : '';
   const { mobile } = req.body;
-  console.log('Verify OTP request:', { email, otp, mobile });
+  console.log('Verify OTP request:', { email, otpPresent: Boolean(otp), otpLength: otp.length, mobile });
   if (!email || !otp) return res.status(400).json({ message: 'Email and OTP required' });
   try {
     const isValid = verifyOTP(email, otp);

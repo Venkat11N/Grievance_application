@@ -5,8 +5,11 @@ import User from '../models/User';
 import { sendPushNotification } from '../services/push';
 import { AuthRequest } from '../middlewares/auth';
 
+const sampleNotificationsFlag = process.env.FEATURE_FLAG_SAMPLE_NOTIFICATIONS;
 const sampleNotificationsEnabled =
-  process.env.NODE_ENV !== 'production' || process.env.FEATURE_FLAG_SAMPLE_NOTIFICATIONS === 'true';
+  sampleNotificationsFlag === undefined
+    ? process.env.NODE_ENV !== 'production'
+    : sampleNotificationsFlag === 'true';
 
 const getSampleNotifications = (userId: string, role: string) => {
   if (role === 'official') {
@@ -86,15 +89,37 @@ const getSampleNotifications = (userId: string, role: string) => {
 };
 
 const ensureSampleNotifications = async (user: any) => {
-  const seedResult = await UserNotificationSeed.findOneAndUpdate(
-    { userId: user._id },
-    { $setOnInsert: { userId: user._id } },
-    { upsert: true, new: false, includeResultMetadata: true }
-  );
+  let seedResult: any;
 
-  if (!seedResult.lastErrorObject?.upserted) return;
+  try {
+    seedResult = await UserNotificationSeed.findOneAndUpdate(
+      { userId: user._id, seeded: { $ne: true }, seeding: { $ne: true } },
+      {
+        $set: { seeding: true, updatedAt: new Date() },
+        $setOnInsert: { userId: user._id, seeded: false, createdAt: new Date() },
+      },
+      { upsert: true, new: true, includeResultMetadata: true }
+    );
+  } catch (error: any) {
+    if (error?.code === 11000) return;
+    throw error;
+  }
 
-  await Notification.insertMany(getSampleNotifications(user._id, user.role));
+  if (!seedResult.value || seedResult.value.seeded) return;
+
+  try {
+    await Notification.insertMany(getSampleNotifications(user._id, user.role));
+    await UserNotificationSeed.updateOne(
+      { userId: user._id },
+      { $set: { seeded: true, seeding: false, updatedAt: new Date() } }
+    );
+  } catch (error) {
+    await UserNotificationSeed.updateOne(
+      { userId: user._id },
+      { $set: { seeding: false, updatedAt: new Date() } }
+    );
+    throw error;
+  }
 };
 
 // This endpoint is meant to be called by the external grievance system.
