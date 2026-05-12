@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
-import * as SecureStore from 'expo-secure-store';
+import { appStorage } from '../src/services/storage';
 
 export default function Index() {
   const router = useRouter();
@@ -12,7 +12,7 @@ export default function Index() {
   }, []);
 
   const checkAuth = async () => {
-    const token = await SecureStore.getItemAsync('authToken');
+    const token = await appStorage.getItem('authToken');
     if (token) {
       router.replace('/notifications' as any);
     } else {

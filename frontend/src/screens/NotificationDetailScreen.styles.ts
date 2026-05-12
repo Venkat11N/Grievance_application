@@ -1,0 +1,31 @@
+import { StyleSheet } from 'react-native';
+
+export const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#F4F7FB' },
+  loadingContainer: { alignItems: 'center', flex: 1, justifyContent: 'center' },
+  scrollView: { flex: 1 },
+  scrollContent: { paddingBottom: 28 },
+  scrollContentWeb: { alignItems: 'center', paddingHorizontal: 24, paddingTop: 24 },
+  detailShell: { width: '100%' },
+  detailShellWeb: { maxWidth: 980 },
+  header: {
+    backgroundColor: '#1E3A8A',
+    borderBottomColor: '#1E40AF',
+    borderBottomWidth: 1,
+    padding: 20,
+  },
+  headerWeb: { borderRadius: 18, paddingHorizontal: 28, paddingVertical: 24 },
+  backButton: { alignSelf: 'flex-start', backgroundColor: '#EFF6FF', borderRadius: 8, marginBottom: 14, paddingHorizontal: 12, paddingVertical: 7 },
+  backButtonText: { color: '#1D4ED8', fontSize: 14, fontWeight: '700' },
+  title: { color: '#fff', fontSize: 24, fontWeight: '700', marginBottom: 8 },
+  date: { color: '#BFDBFE', fontSize: 14 },
+  content: { padding: 20 },
+  contentWeb: { backgroundColor: '#FFFFFF', borderColor: '#D8E2EA', borderRadius: 18, borderWidth: 1, marginTop: 20, padding: 28 },
+  body: { color: '#111827', fontSize: 16, lineHeight: 24 },
+  dataContainer: { backgroundColor: '#fff', borderColor: '#D8E2EA', borderRadius: 8, borderWidth: 1, marginTop: 20, padding: 15 },
+  dataTitle: { color: '#333', fontSize: 16, fontWeight: '700', marginBottom: 10 },
+  dataRow: { borderTopColor: '#E5E7EB', borderTopWidth: 1, paddingVertical: 10 },
+  dataLabel: { color: '#6B7280', fontSize: 12, fontWeight: '700', marginBottom: 4, textTransform: 'uppercase' },
+  dataValue: { color: '#111827', fontSize: 14, fontWeight: '600' },
+  errorText: { color: '#888', fontSize: 16, marginTop: 50, textAlign: 'center' },
+});

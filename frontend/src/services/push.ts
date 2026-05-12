@@ -1,21 +1,26 @@
 import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
+import { Platform } from 'react-native';
 import { notificationService } from './notification';
 
 // Configure notification behavior
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
-});
+if (Platform.OS !== 'web') {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: true,
+      shouldShowBanner: true,
+      shouldShowList: true,
+    }),
+  });
+}
 
 export const pushService = {
   // Request notification permissions
   requestPermissions: async () => {
+    if (Platform.OS === 'web') return false;
+
     const { status: existingStatus } = await Notifications.getPermissionsAsync();
     let finalStatus = existingStatus;
     
@@ -29,6 +34,8 @@ export const pushService = {
 
   // Get the push token
   getPushToken: async () => {
+    if (Platform.OS === 'web') return null;
+
     try {
       const projectId = Constants.expoConfig?.extra?.eas?.projectId;
       if (!projectId) {
@@ -45,6 +52,8 @@ export const pushService = {
 
   // Register push token with backend
   registerPushToken: async () => {
+    if (Platform.OS === 'web') return;
+
     const hasPermission = await pushService.requestPermissions();
     if (!hasPermission) {
       console.log('Failed to get push notification permissions');
@@ -64,11 +73,15 @@ export const pushService = {
 
   // Listen for incoming notifications
   addNotificationReceivedListener: (callback: (notification: Notifications.Notification) => void) => {
+    if (Platform.OS === 'web') return { remove: () => undefined };
+
     return Notifications.addNotificationReceivedListener(callback);
   },
 
   // Listen for notification taps
   addNotificationResponseReceivedListener: (callback: (response: Notifications.NotificationResponse) => void) => {
+    if (Platform.OS === 'web') return { remove: () => undefined };
+
     return Notifications.addNotificationResponseReceivedListener(callback);
   },
 };

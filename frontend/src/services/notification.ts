@@ -20,4 +20,9 @@ export const notificationService = {
     const response = await api.post('/auth/push-token', { token });
     return response.data;
   },
+
+  markAsRead: async (notificationId: string) => {
+    const response = await api.patch(`/notifications/${notificationId}/read`);
+    return response.data;
+  },
 };

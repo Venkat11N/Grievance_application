@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import * as SecureStore from 'expo-secure-store';
+import { Platform } from 'react-native';
+import { appStorage } from '../services/storage';
 import { pushService } from '../services/push';
 
 interface User {
@@ -25,29 +26,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const checkAuth = async () => {
-    const token = await SecureStore.getItemAsync('authToken');
-    const role = await SecureStore.getItemAsync('userRole');
+    const token = await appStorage.getItem('authToken');
+    const role = await appStorage.getItem('userRole');
     
     if (token && role) {
       setUser({ token, role: role as 'seafarer' | 'official' });
       setIsAuthenticated(true);
       // Register push token when user is authenticated
-      pushService.registerPushToken();
+      if (Platform.OS !== 'web') {
+        pushService.registerPushToken();
+      }
     }
   };
 
   const login = async (userData: User) => {
-    await SecureStore.setItemAsync('authToken', userData.token);
-    await SecureStore.setItemAsync('userRole', userData.role);
+    await appStorage.setItem('authToken', userData.token);
+    await appStorage.setItem('userRole', userData.role);
     setUser(userData);
     setIsAuthenticated(true);
     // Register push token on login
-    pushService.registerPushToken();
+    if (Platform.OS !== 'web') {
+      pushService.registerPushToken();
+    }
   };
 
   const logout = async () => {
-    await SecureStore.deleteItemAsync('authToken');
-    await SecureStore.deleteItemAsync('userRole');
+    await appStorage.deleteItem('authToken');
+    await appStorage.deleteItem('userRole');
     setUser(null);
     setIsAuthenticated(false);
   };

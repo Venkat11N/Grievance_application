@@ -1,12 +1,16 @@
 import { Request, Response } from 'express';
+import { Types } from 'mongoose';
 import Notification from '../models/Notification';
 import UserNotificationSeed from '../models/UserNotificationSeed';
 import User from '../models/User';
 import { sendPushNotification } from '../services/push';
 import { AuthRequest } from '../middlewares/auth';
 
+const sampleNotificationsFlag = process.env.FEATURE_FLAG_SAMPLE_NOTIFICATIONS;
 const sampleNotificationsEnabled =
-  process.env.NODE_ENV !== 'production' || process.env.FEATURE_FLAG_SAMPLE_NOTIFICATIONS === 'true';
+  sampleNotificationsFlag === undefined
+    ? process.env.NODE_ENV !== 'production'
+    : sampleNotificationsFlag === 'true';
 
 const getSampleNotifications = (userId: string, role: string) => {
   if (role === 'official') {
@@ -86,15 +90,45 @@ const getSampleNotifications = (userId: string, role: string) => {
 };
 
 const ensureSampleNotifications = async (user: any) => {
-  const seedResult = await UserNotificationSeed.findOneAndUpdate(
-    { userId: user._id },
-    { $setOnInsert: { userId: user._id } },
-    { upsert: true, new: false, includeResultMetadata: true }
-  );
+  const LEASE_MS = 5 * 60 * 1000; // 5 minutes lease
+  let seedResult: any;
 
-  if (!seedResult.lastErrorObject?.upserted) return;
+  try {
+    seedResult = await UserNotificationSeed.findOneAndUpdate(
+      { 
+        userId: user._id, 
+        seeded: { $ne: true },
+        $or: [
+          { seeding: { $ne: true } },
+          { seedingAt: { $lt: new Date(Date.now() - LEASE_MS) } }
+        ]
+      },
+      {
+        $set: { seeding: true, seedingAt: new Date(), updatedAt: new Date() },
+        $setOnInsert: { userId: user._id, seeded: false, createdAt: new Date() },
+      },
+      { upsert: true, new: true, includeResultMetadata: true }
+    );
+  } catch (error: any) {
+    if (error?.code === 11000) return;
+    throw error;
+  }
 
-  await Notification.insertMany(getSampleNotifications(user._id, user.role));
+  if (!seedResult.value || seedResult.value.seeded) return;
+
+  try {
+    await Notification.insertMany(getSampleNotifications(user._id, user.role));
+    await UserNotificationSeed.updateOne(
+      { userId: user._id },
+      { $set: { seeded: true, seeding: false, seedingAt: null, updatedAt: new Date() } }
+    );
+  } catch (error) {
+    await UserNotificationSeed.updateOne(
+      { userId: user._id },
+      { $set: { seeding: false, seedingAt: null, updatedAt: new Date() } }
+    );
+    throw error;
+  }
 };
 
 // This endpoint is meant to be called by the external grievance system.
@@ -148,4 +182,74 @@ export const getMyNotifications = async (req: AuthRequest, res: Response) => {
   } catch (error) {
     res.status(500).json({ message: 'Failed to fetch notifications' });
   }
+};
+
+// Mark notification as read
+export const markAsRead = async (req: AuthRequest, res: Response) => {
+  const { notificationId } = req.params;
+  const user = req.user!;
+
+  // Validate ObjectId format
+  if (!Types.ObjectId.isValid(notificationId)) {
+    return res.status(400).json({ message: 'Invalid notificationId' });
+  }
+
+  try {
+    const notification = await Notification.findOne({ _id: notificationId, userId: user._id });
+    if (!notification) {
+      return res.status(404).json({ message: 'Notification not found' });
+    }
+
+    notification.read = true;
+    await notification.save();
+
+    res.json({ message: 'Notification marked as read' });
+  } catch (error: any) {
+    // Handle Mongoose CastError specifically
+    if (error.name === 'CastError') {
+      return res.status(400).json({ message: 'Invalid notificationId' });
+    }
+    res.status(500).json({ message: 'Failed to mark notification as read' });
+  }
+};
+
+// Send test notification after login (for development testing)
+export const sendTestNotification = async (userId: string, userRole: string) => {
+  // Only send test notifications in development
+  if (process.env.NODE_ENV === 'production') return;
+
+  // Wait 5 seconds after login
+  setTimeout(async () => {
+    try {
+      const testNotification = {
+        userId,
+        title: userRole === 'official' 
+          ? 'New grievance assigned' 
+          : 'Case update received',
+        body: userRole === 'official'
+          ? 'A seafarer has submitted a wage dispute requiring your review. This is a test notification.'
+          : 'Your grievance has been reviewed and forwarded to port authority. This is a test notification.',
+        data: {
+          referenceNo: 'TEST-' + Date.now().toString().slice(-6),
+          category: 'Test',
+          priority: 'Normal',
+          status: 'Test Notification'
+        }
+      };
+
+      const savedNotification = await new Notification(testNotification).save();
+      
+      // Include notificationId in push notification data for navigation
+      const pushData = {
+        ...testNotification.data,
+        notificationId: savedNotification._id.toString()
+      };
+      
+      await sendPushNotification(userId, testNotification.title, testNotification.body, pushData);
+      
+      console.log(`[TEST] Notification sent to ${userRole}:`, testNotification.title);
+    } catch (error) {
+      console.error('[TEST] Failed to send test notification:', error);
+    }
+  }, 5000); // 5 seconds delay
 };

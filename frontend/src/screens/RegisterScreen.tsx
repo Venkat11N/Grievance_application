@@ -1,23 +1,28 @@
 import React, { useState } from 'react';
 import {
-  View,
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
   Text,
   TextInput,
   TouchableOpacity,
-  StyleSheet,
-  Alert,
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  ScrollView,
-  Platform,
+  useWindowDimensions,
+  View,
 } from 'react-native';
 import { CommonActions } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import * as SecureStore from 'expo-secure-store';
-import { authService } from '../services/auth';
 import { router, useNavigation } from 'expo-router';
+import { authService } from '../services/auth';
+import { appStorage } from '../services/storage';
+import { registerPushToken } from '../hooks/usePushToken';
+import { styles } from './RegisterScreen.styles';
 
 export default function RegisterScreen() {
+  const isWeb = Platform.OS === 'web';
+  const { width } = useWindowDimensions();
+  const isWideWeb = isWeb && width >= 1024;
   const navigation = useNavigation();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -27,13 +32,14 @@ export default function RegisterScreen() {
   const [isOtpSent, setIsOtpSent] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  // Push token will be registered after successful registration
+
   const handleRequestOtp = async () => {
     const normalizedEmail = email.trim().toLowerCase();
     if (!name.trim() || !normalizedEmail || !role) {
       Alert.alert('Error', 'Please fill all required fields');
       return;
     }
-
     setLoading(true);
     try {
       await authService.register({ name: name.trim(), email: normalizedEmail, mobile, role });
@@ -42,8 +48,7 @@ export default function RegisterScreen() {
       setIsOtpSent(true);
       Alert.alert('Success', 'OTP sent to your email');
     } catch (error: any) {
-      const errorMsg = error.response?.data?.message || error.message || 'Failed to send OTP';
-      Alert.alert('Error', errorMsg);
+      Alert.alert('Error', error.response?.data?.message || error.message || 'Failed to send OTP');
     } finally {
       setLoading(false);
     }
@@ -55,19 +60,19 @@ export default function RegisterScreen() {
       Alert.alert('Error', 'Please enter OTP');
       return;
     }
-
     setLoading(true);
     try {
       const response = await authService.verifyOtp(email, trimmedOtp, mobile);
       if (response.token) {
-        await SecureStore.setItemAsync('authToken', response.token);
-        await SecureStore.setItemAsync('userRole', role);
-        navigation.dispatch(
-          CommonActions.reset({
-            index: 0,
-            routes: [{ name: 'notifications' }],
-          })
-        );
+        await appStorage.setItem('authToken', response.token);
+        await appStorage.setItem('userRole', role);
+        
+        // Register push token after successful registration (skip on web)
+        if (Platform.OS !== 'web') {
+          await registerPushToken();
+        }
+        
+        navigation.dispatch(CommonActions.reset({ index: 0, routes: [{ name: 'notifications' }] }));
       }
     } catch (error: any) {
       Alert.alert('Error', error.response?.data?.message || 'Registration failed');
@@ -77,217 +82,98 @@ export default function RegisterScreen() {
   };
 
   return (
-    <KeyboardAvoidingView 
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined} 
-      style={styles.screen}
-    >
+    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.screen}>
       <SafeAreaView style={styles.screen} edges={['top', 'bottom']}>
-      <ScrollView 
-        contentContainerStyle={styles.container}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-      >
-      <Text style={styles.eyebrow}>Maritime Grievance Portal</Text>
-      <Text style={styles.title}>Create account</Text>
-      <Text style={styles.subtitle}>Register to receive grievance status updates and official notices.</Text>
+        <ScrollView
+          contentContainerStyle={[styles.container, isWideWeb && styles.webContainer]}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={[styles.authShell, isWideWeb && styles.authShellWeb]}>
+            {isWideWeb && (
+              <View style={styles.webHero}>
+                <Text style={styles.webHeroEyebrow}>Account onboarding</Text>
+                <Text style={styles.webHeroTitle}>Create access for the right grievance workflow.</Text>
+                <Text style={styles.webHeroBody}>
+                  Register once, verify by OTP, and step into a browser layout that feels closer to a case portal than a handset screen.
+                </Text>
+                <View style={styles.webFeatureList}>
+                  <Text style={styles.webFeatureItem}>Seafarers receive case updates and document requests</Text>
+                  <Text style={styles.webFeatureItem}>Officials receive reviews, escalations, and hearing reminders</Text>
+                  <Text style={styles.webFeatureItem}>The same flow still works cleanly in Expo Go on iPhone</Text>
+                </View>
+              </View>
+            )}
 
-      <TextInput
-        style={styles.input}
-        placeholder="Full Name *"
-        placeholderTextColor="#6B7280"
-        value={name}
-        onChangeText={setName}
-        editable={!isOtpSent}
-      />
+            <View style={[styles.formCard, isWideWeb && styles.formCardWeb]}>
+              <Text style={[styles.eyebrow, isWideWeb && styles.eyebrowWeb]}>Maritime Grievance Portal</Text>
+              <Text style={[styles.title, isWideWeb && styles.titleWeb]}>Create account</Text>
+              <Text style={[styles.subtitle, isWideWeb && styles.subtitleWeb]}>
+                Register to receive grievance status updates and official notices.
+              </Text>
 
-      <TextInput
-        style={styles.input}
-        placeholder="Email *"
-        placeholderTextColor="#6B7280"
-        value={email}
-        onChangeText={setEmail}
-        keyboardType="email-address"
-        autoCapitalize="none"
-        editable={!isOtpSent}
-      />
+              <TextInput style={styles.input} placeholder="Full Name *" placeholderTextColor="#6B7280" value={name} onChangeText={setName} editable={!isOtpSent} />
+              <TextInput
+                style={styles.input}
+                placeholder="Email *"
+                placeholderTextColor="#6B7280"
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                editable={!isOtpSent}
+              />
+              <TextInput
+                style={styles.input}
+                placeholder="Mobile Number (optional)"
+                placeholderTextColor="#6B7280"
+                value={mobile}
+                onChangeText={setMobile}
+                keyboardType="phone-pad"
+                editable={!isOtpSent}
+              />
 
-      <TextInput
-        style={styles.input}
-        placeholder="Mobile Number (optional)"
-        placeholderTextColor="#6B7280"
-        value={mobile}
-        onChangeText={setMobile}
-        keyboardType="phone-pad"
-        editable={!isOtpSent}
-      />
+              <View style={styles.roleContainer}>
+                <Text style={styles.label}>Role: *</Text>
+                <View style={styles.roleButtons}>
+                  <TouchableOpacity style={[styles.roleButton, role === 'seafarer' && styles.roleButtonActive]} onPress={() => setRole('seafarer')} disabled={isOtpSent}>
+                    <Text style={[styles.roleButtonText, role === 'seafarer' && styles.roleButtonTextActive]}>Seafarer</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={[styles.roleButton, role === 'official' && styles.roleButtonActive]} onPress={() => setRole('official')} disabled={isOtpSent}>
+                    <Text style={[styles.roleButtonText, role === 'official' && styles.roleButtonTextActive]}>Official</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
 
-      <View style={styles.roleContainer}>
-        <Text style={styles.label}>Role: *</Text>
-        <View style={styles.roleButtons}>
-          <TouchableOpacity
-            style={[styles.roleButton, role === 'seafarer' && styles.roleButtonActive]}
-            onPress={() => setRole('seafarer')}
-            disabled={isOtpSent}
-          >
-            <Text style={[styles.roleButtonText, role === 'seafarer' && styles.roleButtonTextActive]}>
-              Seafarer
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.roleButton, role === 'official' && styles.roleButtonActive]}
-            onPress={() => setRole('official')}
-            disabled={isOtpSent}
-          >
-            <Text style={[styles.roleButtonText, role === 'official' && styles.roleButtonTextActive]}>
-              Official
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+              {isOtpSent && (
+                <TextInput
+                  style={styles.input}
+                  placeholder="Enter OTP *"
+                  placeholderTextColor="#6B7280"
+                  value={otp}
+                  onChangeText={setOtp}
+                  keyboardType="number-pad"
+                  maxLength={6}
+                />
+              )}
 
-      {isOtpSent && (
-        <TextInput
-          style={styles.input}
-          placeholder="Enter OTP *"
-          placeholderTextColor="#6B7280"
-          value={otp}
-          onChangeText={setOtp}
-          keyboardType="number-pad"
-          maxLength={6}
-        />
-      )}
+              <TouchableOpacity style={styles.button} onPress={isOtpSent ? handleRegister : handleRequestOtp} disabled={loading}>
+                {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>{isOtpSent ? 'Register' : 'Send OTP'}</Text>}
+              </TouchableOpacity>
 
-      <TouchableOpacity
-        style={styles.button}
-        onPress={isOtpSent ? handleRegister : handleRequestOtp}
-        disabled={loading}
-      >
-        {loading ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text style={styles.buttonText}>{isOtpSent ? 'Register' : 'Send OTP'}</Text>
-        )}
-      </TouchableOpacity>
+              {isOtpSent && (
+                <TouchableOpacity onPress={handleRequestOtp} disabled={loading}>
+                  <Text style={styles.secondaryLinkText}>Resend OTP</Text>
+                </TouchableOpacity>
+              )}
 
-      {isOtpSent && (
-        <TouchableOpacity onPress={handleRequestOtp} disabled={loading}>
-          <Text style={styles.secondaryLinkText}>Resend OTP</Text>
-        </TouchableOpacity>
-      )}
-
-      <TouchableOpacity onPress={() => router.replace('/login' as any)}>
-        <Text style={styles.linkText}>Already have an account? Login</Text>
-      </TouchableOpacity>
-      </ScrollView>
+              <TouchableOpacity onPress={() => router.replace('/login' as any)}>
+                <Text style={styles.linkText}>Already have an account? Login</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </ScrollView>
       </SafeAreaView>
     </KeyboardAvoidingView>
   );
 }
-
-const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: '#F4F7FB',
-  },
-  container: {
-    flexGrow: 1,
-    paddingHorizontal: 24,
-    paddingVertical: 28,
-    justifyContent: 'center',
-  },
-  eyebrow: {
-    color: '#2563EB',
-    fontSize: 13,
-    fontWeight: '800',
-    marginBottom: 8,
-    textAlign: 'center',
-    textTransform: 'uppercase',
-  },
-  title: {
-    fontSize: 30,
-    fontWeight: '800',
-    marginBottom: 8,
-    textAlign: 'center',
-    color: '#111827',
-  },
-  subtitle: {
-    color: '#4B5563',
-    fontSize: 15,
-    lineHeight: 22,
-    marginBottom: 26,
-    textAlign: 'center',
-  },
-  input: {
-    backgroundColor: '#fff',
-    color: '#111827',
-    paddingHorizontal: 16,
-    paddingVertical: 15,
-    borderRadius: 8,
-    marginBottom: 15,
-    borderWidth: 1,
-    borderColor: '#CBD5E1',
-    fontSize: 16,
-  },
-  roleContainer: {
-    marginBottom: 20,
-  },
-  label: {
-    fontSize: 16,
-    marginBottom: 8,
-    color: '#111827',
-  },
-  roleButtons: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  roleButton: {
-    flex: 1,
-    padding: 15,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#CBD5E1',
-    backgroundColor: '#fff',
-    alignItems: 'center',
-  },
-  roleButtonActive: {
-    backgroundColor: '#1D4ED8',
-    borderColor: '#1D4ED8',
-  },
-  roleButtonText: {
-    color: '#333',
-    fontWeight: '600',
-  },
-  roleButtonTextActive: {
-    color: '#fff',
-  },
-  button: {
-    backgroundColor: '#1D4ED8',
-    padding: 15,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginTop: 10,
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  otpCode: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#1D4ED8',
-    textAlign: 'center',
-    marginBottom: 10,
-  },
-  linkText: {
-    color: '#1D4ED8',
-    textAlign: 'center',
-    marginTop: 20,
-  },
-  secondaryLinkText: {
-    color: '#1D4ED8',
-    fontWeight: '700',
-    marginTop: 14,
-    textAlign: 'center',
-  },
-});
