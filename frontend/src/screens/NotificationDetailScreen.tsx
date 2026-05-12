@@ -5,9 +5,10 @@ import {
   ScrollView,
   StyleSheet,
   ActivityIndicator,
-  Platform,
+  TouchableOpacity,
 } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { notificationService, Notification } from '../services/notification';
 
 export default function NotificationDetailScreen() {
@@ -36,24 +37,31 @@ export default function NotificationDetailScreen() {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#007AFF" />
-      </View>
+      <SafeAreaView style={styles.loadingContainer} edges={['top', 'bottom']}>
+        <ActivityIndicator size="large" color="#1D4ED8" />
+      </SafeAreaView>
     );
   }
 
   if (!notification) {
     return (
-      <View style={styles.container}>
+      <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
         <Text style={styles.errorText}>Notification not found</Text>
-      </View>
+      </SafeAreaView>
     );
   }
 
+  const detailEntries = notification.data
+    ? Object.entries(notification.data).filter(([, value]) => value !== undefined && value !== null && value !== '')
+    : [];
+
   return (
-    <View style={styles.container}>
-      <ScrollView style={styles.scrollView}>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         <View style={styles.header}>
+          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+            <Text style={styles.backButtonText}>Back</Text>
+          </TouchableOpacity>
           <Text style={styles.title}>{notification.title}</Text>
           <Text style={styles.date}>
             {new Date(notification.createdAt).toLocaleString()}
@@ -65,22 +73,25 @@ export default function NotificationDetailScreen() {
 
           {notification.data && Object.keys(notification.data).length > 0 && (
             <View style={styles.dataContainer}>
-              <Text style={styles.dataTitle}>Additional Information:</Text>
-              <Text style={styles.dataText}>
-                {JSON.stringify(notification.data, null, 2)}
-              </Text>
+              <Text style={styles.dataTitle}>Case details</Text>
+              {detailEntries.map(([key, value]) => (
+                <View key={key} style={styles.dataRow}>
+                  <Text style={styles.dataLabel}>{formatLabel(key)}</Text>
+                  <Text style={styles.dataValue}>{String(value)}</Text>
+                </View>
+              ))}
             </View>
           )}
         </View>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#F4F7FB',
   },
   loadingContainer: {
     flex: 1,
@@ -90,21 +101,37 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
   },
+  scrollContent: {
+    paddingBottom: 28,
+  },
   header: {
-    backgroundColor: '#fff',
+    backgroundColor: '#1E3A8A',
     padding: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#ddd',
+    borderBottomColor: '#1E40AF',
+  },
+  backButton: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#EFF6FF',
+    borderRadius: 8,
+    marginBottom: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+  },
+  backButtonText: {
+    color: '#1D4ED8',
+    fontSize: 14,
+    fontWeight: '700',
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#333',
+    color: '#fff',
     marginBottom: 8,
   },
   date: {
     fontSize: 14,
-    color: '#888',
+    color: '#BFDBFE',
   },
   content: {
     padding: 20,
@@ -112,7 +139,7 @@ const styles = StyleSheet.create({
   body: {
     fontSize: 16,
     lineHeight: 24,
-    color: '#333',
+    color: '#111827',
   },
   dataContainer: {
     marginTop: 20,
@@ -120,7 +147,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: '#D8E2EA',
   },
   dataTitle: {
     fontSize: 16,
@@ -128,10 +155,22 @@ const styles = StyleSheet.create({
     color: '#333',
     marginBottom: 10,
   },
-  dataText: {
+  dataRow: {
+    paddingVertical: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+  },
+  dataLabel: {
+    color: '#6B7280',
+    fontSize: 12,
+    fontWeight: '700',
+    marginBottom: 4,
+    textTransform: 'uppercase',
+  },
+  dataValue: {
     fontSize: 14,
-    color: '#666',
-    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+    color: '#111827',
+    fontWeight: '600',
   },
   errorText: {
     fontSize: 16,
@@ -140,3 +179,8 @@ const styles = StyleSheet.create({
     marginTop: 50,
   },
 });
+
+const formatLabel = (key: string) =>
+  key
+    .replace(/([A-Z])/g, ' $1')
+    .replace(/^./, (char) => char.toUpperCase());

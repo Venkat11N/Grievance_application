@@ -27,6 +27,11 @@ export const verifyOTP = (email: string, otp: string): boolean => {
       console.log(`[OTP] Magic OTP rejected for ${email}: no prior OTP request found.`);
       return false;
     }
+    if (entry.expiresAt <= new Date()) {
+      console.log(`[OTP] Magic OTP rejected for ${email}: OTP expired.`);
+      otpStore.delete(email);
+      return false;
+    }
     console.log(`[OTP] Development shortcut: Used magic OTP for ${email}.`);
     otpStore.delete(email);
     return true;

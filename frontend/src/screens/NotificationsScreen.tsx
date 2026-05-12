@@ -7,10 +7,10 @@ import {
   StyleSheet,
   ActivityIndicator,
   RefreshControl,
-  SafeAreaView,
   StatusBar,
   Alert,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { notificationService, Notification } from '../services/notification';
 import { router } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
@@ -81,37 +81,44 @@ export default function NotificationsScreen() {
       <Text style={styles.notificationBody} numberOfLines={2}>
         {item.body}
       </Text>
+      {item.data?.status && (
+        <Text style={styles.statusText}>{item.data.status}</Text>
+      )}
       {!item.read && <View style={styles.unreadDot} />}
     </TouchableOpacity>
   );
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.loadingContainer}>
+      <SafeAreaView style={styles.loadingContainer} edges={['top', 'bottom']}>
         <StatusBar barStyle="dark-content" />
-        <ActivityIndicator size="large" color="#007AFF" />
+        <ActivityIndicator size="large" color="#1D4ED8" />
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" />
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+      <StatusBar barStyle="light-content" />
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Notifications</Text>
+        <Text style={styles.headerEyebrow}>Maritime Grievance Portal</Text>
+        <View style={styles.headerRow}>
+          <Text style={styles.headerTitle}>Notifications</Text>
+          <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
+            <Text style={styles.logoutText}>Logout</Text>
+          </TouchableOpacity>
+        </View>
         <View style={styles.headerRight}>
           <Text style={styles.roleBadge}>
             {userRole === 'seafarer' ? 'Seafarer' : 'Official'}
           </Text>
-          <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
-            <Text style={styles.logoutText}>Logout</Text>
-          </TouchableOpacity>
         </View>
       </View>
 
       {notifications.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>No notifications yet</Text>
+          <Text style={styles.emptyText}>No grievance updates yet</Text>
+          <Text style={styles.emptySubtext}>New case assignments, document requests, and status updates will appear here.</Text>
         </View>
       ) : (
         <FlatList
@@ -122,6 +129,7 @@ export default function NotificationsScreen() {
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
           }
           contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
         />
       )}
     </SafeAreaView>
@@ -131,29 +139,42 @@ export default function NotificationsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#F4F7FB',
   },
   header: {
-    paddingTop: 10,
     paddingHorizontal: 20,
-    paddingBottom: 15,
-    backgroundColor: '#fff',
+    paddingTop: 14,
+    paddingBottom: 18,
+    backgroundColor: '#1E3A8A',
     borderBottomWidth: 1,
-    borderBottomColor: '#ddd',
+    borderBottomColor: '#1E40AF',
+  },
+  headerRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
   },
   headerRight: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginTop: 12,
     gap: 10,
   },
   headerTitle: {
     fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
+    fontWeight: '800',
+    color: '#fff',
+  },
+  headerEyebrow: {
+    fontSize: 12,
+    color: '#BFDBFE',
+    fontWeight: '700',
+    marginBottom: 4,
+    textTransform: 'uppercase',
   },
   roleBadge: {
-    backgroundColor: '#007AFF',
-    color: '#fff',
+    backgroundColor: '#DBEAFE',
+    color: '#1E3A8A',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
@@ -161,11 +182,13 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   logoutButton: {
+    backgroundColor: '#EFF6FF',
+    borderRadius: 8,
     paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingVertical: 7,
   },
   logoutText: {
-    color: '#FF3B30',
+    color: '#1D4ED8',
     fontSize: 14,
     fontWeight: '600',
   },
@@ -175,7 +198,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   listContent: {
-    padding: 10,
+    padding: 14,
+    paddingBottom: 28,
   },
   notificationItem: {
     backgroundColor: '#fff',
@@ -183,12 +207,12 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: '#D8E2EA',
     position: 'relative',
   },
   unreadNotification: {
-    backgroundColor: '#E3F2FD',
-    borderColor: '#007AFF',
+    backgroundColor: '#EFF6FF',
+    borderColor: '#1D4ED8',
   },
   notificationHeader: {
     flexDirection: 'row',
@@ -198,7 +222,7 @@ const styles = StyleSheet.create({
   notificationTitle: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#333',
+    color: '#111827',
     flex: 1,
   },
   notificationTime: {
@@ -208,7 +232,19 @@ const styles = StyleSheet.create({
   },
   notificationBody: {
     fontSize: 14,
-    color: '#666',
+    color: '#4B5563',
+    lineHeight: 20,
+  },
+  statusText: {
+    alignSelf: 'flex-start',
+    marginTop: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+    backgroundColor: '#EEF2FF',
+    color: '#1D4ED8',
+    fontSize: 12,
+    fontWeight: '700',
   },
   unreadDot: {
     position: 'absolute',
@@ -217,7 +253,7 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#007AFF',
+    backgroundColor: '#1D4ED8',
   },
   emptyContainer: {
     flex: 1,
@@ -226,6 +262,14 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    color: '#888',
+    color: '#374151',
+    fontWeight: '700',
+  },
+  emptySubtext: {
+    marginTop: 8,
+    paddingHorizontal: 28,
+    textAlign: 'center',
+    color: '#6B7280',
+    lineHeight: 20,
   },
 });

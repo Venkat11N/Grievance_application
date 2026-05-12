@@ -8,6 +8,7 @@ const emailPass = process.env.EMAIL_PASS;
 const isProduction = process.env.NODE_ENV === 'production';
 const emailDeliveryEnabled = isProduction || process.env.ENABLE_EMAIL_DELIVERY === 'true';
 const useDevelopmentFallback = !emailDeliveryEnabled;
+const allowInsecureSmtpTls = !isProduction && process.env.ALLOW_INSECURE_SMTP_TLS === 'true';
 
 if (!emailUser || !emailPass) {
   console.warn('[EMAIL] WARNING: EMAIL_USER or EMAIL_PASS missing. OTP emails cannot be sent.');
@@ -34,7 +35,7 @@ const createTransporter = async () => {
     },
     tls: {
       servername: smtpHost,
-      rejectUnauthorized: false,
+      rejectUnauthorized: !allowInsecureSmtpTls,
     },
   } as any);
 };
@@ -55,7 +56,7 @@ export const sendOTPEmail = async (email: string, otp: string) => {
     await transporter.sendMail({
       from: emailUser,
       to: email,
-      subject: 'Your OTP for eSamudra Grievance Alerts',
+      subject: 'Your OTP for Maritime Grievance Portal',
       html: `<p>Your OTP is: <b>${otp}</b>. It expires in 10 minutes.</p>`,
     });
     console.log(`[EMAIL] OTP email successfully sent to ${email}`);

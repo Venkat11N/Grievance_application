@@ -11,6 +11,7 @@ import {
   ScrollView,
   Platform,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import * as SecureStore from 'expo-secure-store';
 import { authService } from '../services/auth';
 import { router } from 'expo-router';
@@ -67,17 +68,22 @@ export default function RegisterScreen() {
   return (
     <KeyboardAvoidingView 
       behavior={Platform.OS === 'ios' ? 'padding' : undefined} 
-      style={{ flex: 1, backgroundColor: '#f5f5f5' }}
+      style={styles.screen}
     >
+      <SafeAreaView style={styles.screen} edges={['top', 'bottom']}>
       <ScrollView 
         contentContainerStyle={styles.container}
         keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
-      <Text style={styles.title}>Register</Text>
+      <Text style={styles.eyebrow}>Maritime Grievance Portal</Text>
+      <Text style={styles.title}>Create account</Text>
+      <Text style={styles.subtitle}>Register to receive grievance status updates and official notices.</Text>
 
       <TextInput
         style={styles.input}
         placeholder="Full Name *"
+        placeholderTextColor="#6B7280"
         value={name}
         onChangeText={setName}
         editable={!isOtpSent}
@@ -86,6 +92,7 @@ export default function RegisterScreen() {
       <TextInput
         style={styles.input}
         placeholder="Email *"
+        placeholderTextColor="#6B7280"
         value={email}
         onChangeText={setEmail}
         keyboardType="email-address"
@@ -96,6 +103,7 @@ export default function RegisterScreen() {
       <TextInput
         style={styles.input}
         placeholder="Mobile Number (optional)"
+        placeholderTextColor="#6B7280"
         value={mobile}
         onChangeText={setMobile}
         keyboardType="phone-pad"
@@ -130,6 +138,7 @@ export default function RegisterScreen() {
         <TextInput
           style={styles.input}
           placeholder="Enter OTP *"
+          placeholderTextColor="#6B7280"
           value={otp}
           onChangeText={setOtp}
           keyboardType="number-pad"
@@ -153,31 +162,54 @@ export default function RegisterScreen() {
         <Text style={styles.linkText}>Already have an account? Login</Text>
       </TouchableOpacity>
       </ScrollView>
+      </SafeAreaView>
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+    backgroundColor: '#F4F7FB',
+  },
   container: {
     flexGrow: 1,
-    padding: 20,
+    paddingHorizontal: 24,
+    paddingVertical: 28,
     justifyContent: 'center',
-    backgroundColor: '#f5f5f5',
+  },
+  eyebrow: {
+    color: '#2563EB',
+    fontSize: 13,
+    fontWeight: '800',
+    marginBottom: 8,
+    textAlign: 'center',
+    textTransform: 'uppercase',
   },
   title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    marginBottom: 30,
+    fontSize: 30,
+    fontWeight: '800',
+    marginBottom: 8,
     textAlign: 'center',
-    color: '#333',
+    color: '#111827',
+  },
+  subtitle: {
+    color: '#4B5563',
+    fontSize: 15,
+    lineHeight: 22,
+    marginBottom: 26,
+    textAlign: 'center',
   },
   input: {
     backgroundColor: '#fff',
-    padding: 15,
+    color: '#111827',
+    paddingHorizontal: 16,
+    paddingVertical: 15,
     borderRadius: 8,
     marginBottom: 15,
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: '#CBD5E1',
+    fontSize: 16,
   },
   roleContainer: {
     marginBottom: 20,
@@ -185,7 +217,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 16,
     marginBottom: 8,
-    color: '#333',
+    color: '#111827',
   },
   roleButtons: {
     flexDirection: 'row',
@@ -196,13 +228,13 @@ const styles = StyleSheet.create({
     padding: 15,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: '#CBD5E1',
     backgroundColor: '#fff',
     alignItems: 'center',
   },
   roleButtonActive: {
-    backgroundColor: '#007AFF',
-    borderColor: '#007AFF',
+    backgroundColor: '#1D4ED8',
+    borderColor: '#1D4ED8',
   },
   roleButtonText: {
     color: '#333',
@@ -212,7 +244,7 @@ const styles = StyleSheet.create({
     color: '#fff',
   },
   button: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#1D4ED8',
     padding: 15,
     borderRadius: 8,
     alignItems: 'center',
@@ -226,12 +258,12 @@ const styles = StyleSheet.create({
   otpCode: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#007AFF',
+    color: '#1D4ED8',
     textAlign: 'center',
     marginBottom: 10,
   },
   linkText: {
-    color: '#007AFF',
+    color: '#1D4ED8',
     textAlign: 'center',
     marginTop: 20,
   },
