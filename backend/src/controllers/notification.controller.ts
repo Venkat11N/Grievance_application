@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { Types } from 'mongoose';
 import Notification from '../models/Notification';
 import UserNotificationSeed from '../models/UserNotificationSeed';
 import User from '../models/User';
@@ -89,13 +90,21 @@ const getSampleNotifications = (userId: string, role: string) => {
 };
 
 const ensureSampleNotifications = async (user: any) => {
+  const LEASE_MS = 5 * 60 * 1000; // 5 minutes lease
   let seedResult: any;
 
   try {
     seedResult = await UserNotificationSeed.findOneAndUpdate(
-      { userId: user._id, seeded: { $ne: true }, seeding: { $ne: true } },
+      { 
+        userId: user._id, 
+        seeded: { $ne: true },
+        $or: [
+          { seeding: { $ne: true } },
+          { seedingAt: { $lt: new Date(Date.now() - LEASE_MS) } }
+        ]
+      },
       {
-        $set: { seeding: true, updatedAt: new Date() },
+        $set: { seeding: true, seedingAt: new Date(), updatedAt: new Date() },
         $setOnInsert: { userId: user._id, seeded: false, createdAt: new Date() },
       },
       { upsert: true, new: true, includeResultMetadata: true }
@@ -111,12 +120,12 @@ const ensureSampleNotifications = async (user: any) => {
     await Notification.insertMany(getSampleNotifications(user._id, user.role));
     await UserNotificationSeed.updateOne(
       { userId: user._id },
-      { $set: { seeded: true, seeding: false, updatedAt: new Date() } }
+      { $set: { seeded: true, seeding: false, seedingAt: null, updatedAt: new Date() } }
     );
   } catch (error) {
     await UserNotificationSeed.updateOne(
       { userId: user._id },
-      { $set: { seeding: false, updatedAt: new Date() } }
+      { $set: { seeding: false, seedingAt: null, updatedAt: new Date() } }
     );
     throw error;
   }
@@ -180,6 +189,11 @@ export const markAsRead = async (req: AuthRequest, res: Response) => {
   const { notificationId } = req.params;
   const user = req.user!;
 
+  // Validate ObjectId format
+  if (!Types.ObjectId.isValid(notificationId)) {
+    return res.status(400).json({ message: 'Invalid notificationId' });
+  }
+
   try {
     const notification = await Notification.findOne({ _id: notificationId, userId: user._id });
     if (!notification) {
@@ -190,7 +204,11 @@ export const markAsRead = async (req: AuthRequest, res: Response) => {
     await notification.save();
 
     res.json({ message: 'Notification marked as read' });
-  } catch (error) {
+  } catch (error: any) {
+    // Handle Mongoose CastError specifically
+    if (error.name === 'CastError') {
+      return res.status(400).json({ message: 'Invalid notificationId' });
+    }
     res.status(500).json({ message: 'Failed to mark notification as read' });
   }
 };

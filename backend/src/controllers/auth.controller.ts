@@ -8,6 +8,22 @@ import { sendOTPEmail } from '../services/email';
 import { sendTestNotification } from '../controllers/notification.controller';
 import { AuthRequest } from '../middlewares/auth';
 
+// Helper functions to mask sensitive data
+const maskEmail = (email: string): string => {
+  if (!email) return 'unknown';
+  const [username, domain] = email.split('@');
+  const maskedUsername = username.length > 2 
+    ? username.slice(0, 2) + '*'.repeat(username.length - 2)
+    : '*'.repeat(username.length);
+  return `${maskedUsername}@${domain}`;
+};
+
+const maskMobile = (mobile: string): string => {
+  if (!mobile) return 'unknown';
+  if (mobile.length <= 4) return '*'.repeat(mobile.length);
+  return mobile.slice(0, 2) + '*'.repeat(mobile.length - 4) + mobile.slice(-2);
+};
+
 interface PendingRegistration {
   name: string;
   email: string;
@@ -37,7 +53,7 @@ export const register = async (req: Request, res: Response) => {
 
     const otp = generateOTP(email);
     pendingRegistrations.set(email, { name, email, mobile, role });
-    console.log('Generated OTP for registration:', { email, otpLength: otp.length });
+    console.log('Generated OTP for registration:', { email: maskEmail(email), otpLength: otp.length });
 
     try {
       await sendOTPEmail(email, otp);
@@ -54,7 +70,7 @@ export const register = async (req: Request, res: Response) => {
 
 export const requestOtp = async (req: Request, res: Response) => {
   const email = typeof req.body.email === 'string' ? normalizeEmail(req.body.email) : '';
-  console.log('Request OTP for:', email);
+  console.log('Request OTP for:', maskEmail(email));
   if (!email) return res.status(400).json({ message: 'Email is required' });
   try {
     // Only allow OTP for registered users (for login flow)
@@ -64,7 +80,7 @@ export const requestOtp = async (req: Request, res: Response) => {
     }
 
     const otp = generateOTP(email);
-    console.log('Generated OTP for login:', { email, otpLength: otp.length });
+    console.log('Generated OTP for login:', { email: maskEmail(email), otpLength: otp.length });
 
     try {
       await sendOTPEmail(email, otp);
@@ -83,11 +99,11 @@ export const verifyOtp = async (req: Request, res: Response) => {
   const email = typeof req.body.email === 'string' ? normalizeEmail(req.body.email) : '';
   const otp = typeof req.body.otp === 'string' ? req.body.otp.trim() : '';
   const { mobile } = req.body;
-  console.log('Verify OTP request:', { email, otpPresent: Boolean(otp), otpLength: otp.length, mobile });
+  console.log('Verify OTP request:', { email: maskEmail(email), otpPresent: Boolean(otp), otpLength: otp.length, mobile: mobile ? maskMobile(mobile) : undefined });
   if (!email || !otp) return res.status(400).json({ message: 'Email and OTP required' });
   try {
     const isValid = verifyOTP(email, otp);
-    console.log('OTP verification result for', email, ':', isValid);
+    console.log('OTP verification result for', maskEmail(email), ':', isValid);
     if (!isValid) {
       return res.status(400).json({ message: 'Invalid or expired OTP' });
     }

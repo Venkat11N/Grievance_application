@@ -67,8 +67,10 @@ export default function RegisterScreen() {
         await appStorage.setItem('authToken', response.token);
         await appStorage.setItem('userRole', role);
         
-        // Register push token after successful registration
-        await registerPushToken();
+        // Register push token after successful registration (skip on web)
+        if (Platform.OS !== 'web') {
+          await registerPushToken();
+        }
         
         navigation.dispatch(CommonActions.reset({ index: 0, routes: [{ name: 'notifications' }] }));
       }

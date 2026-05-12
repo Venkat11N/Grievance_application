@@ -13,7 +13,7 @@ export const registerPushToken = async () => {
     // Get the token
     const token = (await Notifications.getExpoPushTokenAsync()).data;
     if (token) {
-      console.log('Push token registered:', token);
+      console.log('Push token registration initiated');
       await notificationService.registerPushToken(token);
     }
   } catch (error) {

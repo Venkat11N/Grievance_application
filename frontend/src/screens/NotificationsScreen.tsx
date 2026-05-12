@@ -143,7 +143,11 @@ export default function NotificationsScreen() {
             </View>
           </View>
           <View style={styles.headerRight}>
-            <Text style={styles.roleBadge}>{userRole === 'seafarer' ? 'Seafarer' : 'Official'}</Text>
+            <Text style={styles.roleBadge}>
+              {userRole === 'seafarer' ? 'Seafarer' : 
+               userRole === 'official' ? 'Official' : 
+               userRole ? 'Unknown' : ''}
+            </Text>
           </View>
         </View>
 

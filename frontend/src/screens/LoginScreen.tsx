@@ -76,8 +76,10 @@ export default function LoginScreen() {
         await appStorage.setItem('authToken', response.token);
         await appStorage.setItem('userRole', response.user.role);
         
-        // Register push token after successful login
-        await registerPushToken();
+        // Register push token after successful login (non-fatal)
+        registerPushToken().catch(error => {
+          console.error('Push token registration failed:', error);
+        });
         
         navigation.dispatch(
           CommonActions.reset({

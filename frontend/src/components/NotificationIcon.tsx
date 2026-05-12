@@ -16,7 +16,18 @@ export const NotificationIcon: React.FC<NotificationIconProps> = ({
   color = '#fff'
 }) => {
   return (
-    <TouchableOpacity onPress={onPress} style={styles.container}>
+    <TouchableOpacity 
+      onPress={onPress} 
+      style={styles.container}
+      accessibilityRole="button"
+      accessibilityLabel="Notifications"
+      accessibilityHint={`View ${unreadCount} unread notification${unreadCount !== 1 ? 's' : ''}`}
+      accessibilityState={{ 
+        busy: false, 
+        disabled: false, 
+        selected: unreadCount > 0 
+      }}
+    >
       <Ionicons name="notifications-outline" size={size} color={color} />
       {unreadCount > 0 && (
         <View style={styles.badge}>
