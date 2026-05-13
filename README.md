@@ -284,7 +284,7 @@ eas build --platform android
 
 ## License
 
-This project is proprietary and confidential.
+This project is open source and available for use and modification.
 
 ## Support
 
