@@ -272,7 +272,7 @@ eas build --platform android
 - Check backend console for push errors
 
 ### Login Issues
-- Verify OTP is correct (check backend console)
+- Confirm OTP was delivered and is valid
 - Check if magic OTP is enabled for development
 - Verify JWT secret matches between requests
 - Check network connectivity to backend
@@ -284,8 +284,4 @@ eas build --platform android
 
 ## License
 
-This project is proprietary and confidential.
-
-## Support
-
-For issues and questions, please contact the development team.
+This project is open source and available for use and modification.
