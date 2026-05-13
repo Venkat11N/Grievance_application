@@ -285,7 +285,3 @@ eas build --platform android
 ## License
 
 This project is open source and available for use and modification.
-
-## Support
-
-For issues and questions, please contact the development team.
