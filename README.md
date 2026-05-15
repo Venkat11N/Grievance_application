@@ -113,6 +113,18 @@ Grievance_application/
    npm run dev
    ```
 
+### Production Backend Start
+
+1. **Build the backend**
+   ```bash
+   cd backend
+   npm run build
+   ```
+2. **Start with PM2**
+   ```bash
+   npm run pm2:start
+   ```
+
 ### Frontend Setup
 
 1. **Navigate to frontend directory**
@@ -153,6 +165,8 @@ Grievance_application/
 - `FEATURE_FLAG_SAMPLE_NOTIFICATIONS`: Enable sample notifications for testing
 - `ALLOW_INSECURE_SMTP_TLS`: Disable TLS verification (testing only)
 - `ENABLE_MAGIC_OTP`: Enable magic OTP "123456" for development
+- `SERVICE_API_KEY`: API key for external notification systems
+- `SERVICE_API_KEY_ROLE`: Role for the service key, set to `admin` for broadcast permissions
 - `EXPO_ACCESS_TOKEN`: Expo access token for push notifications
 
 ### Frontend

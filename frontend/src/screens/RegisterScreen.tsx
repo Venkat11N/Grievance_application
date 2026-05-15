@@ -36,19 +36,39 @@ export default function RegisterScreen() {
 
   const handleRequestOtp = async () => {
     const normalizedEmail = email.trim().toLowerCase();
-    if (!name.trim() || !normalizedEmail || !role) {
-      Alert.alert('Error', 'Please fill all required fields');
+    const trimmedName = name.trim();
+
+    // Client-side validation
+    if (!trimmedName) {
+      Alert.alert('Error', 'Please enter your full name');
       return;
     }
+    if (!normalizedEmail) {
+      Alert.alert('Error', 'Please enter your email address');
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+      Alert.alert('Error', 'Please enter a valid email address');
+      return;
+    }
+    if (!role) {
+      Alert.alert('Error', 'Please select a role');
+      return;
+    }
+
     setLoading(true);
     try {
-      await authService.register({ name: name.trim(), email: normalizedEmail, mobile, role });
+      await authService.register({ name: trimmedName, email: normalizedEmail, mobile: mobile.trim() || undefined, role });
       setEmail(normalizedEmail);
       setOtp('');
       setIsOtpSent(true);
       Alert.alert('Success', 'OTP sent to your email');
     } catch (error: any) {
-      Alert.alert('Error', error.response?.data?.message || error.message || 'Failed to send OTP');
+      console.error('Registration error:', error);
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to send OTP';
+      Alert.alert('Registration Failed', errorMessage);
+      // Ensure OTP step is not shown on error
+      setIsOtpSent(false);
     } finally {
       setLoading(false);
     }

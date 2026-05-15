@@ -9,13 +9,13 @@ export const appStorage = {
     try {
       if (Platform.OS === 'web') {
         if (typeof window === 'undefined') return null;
-        
-        // Do not read sensitive keys from localStorage on web (XSS protection)
+
+        // Use sessionStorage for sensitive keys on web (temporary development fix)
+        // In production, this should use httpOnly cookies
         if (SENSITIVE_KEYS.includes(key)) {
-          console.warn('Sensitive key access blocked on web - use httpOnly cookies instead');
-          return null;
+          return window.sessionStorage.getItem(key);
         }
-        
+
         return window.localStorage.getItem(key);
       }
 
@@ -30,13 +30,14 @@ export const appStorage = {
     try {
       if (Platform.OS === 'web') {
         if (typeof window === 'undefined') return;
-        
-        // Do not store sensitive keys in localStorage on web (XSS protection)
+
+        // Use sessionStorage for sensitive keys on web (temporary development fix)
+        // In production, this should use httpOnly cookies
         if (SENSITIVE_KEYS.includes(key)) {
-          console.warn('Sensitive key storage blocked on web - use httpOnly cookies instead');
+          window.sessionStorage.setItem(key, value);
           return;
         }
-        
+
         window.localStorage.setItem(key, value);
         return;
       }
@@ -51,13 +52,14 @@ export const appStorage = {
     try {
       if (Platform.OS === 'web') {
         if (typeof window === 'undefined') return;
-        
-        // Do not delete sensitive keys from localStorage on web (XSS protection)
+
+        // Use sessionStorage for sensitive keys on web (temporary development fix)
+        // In production, this should use httpOnly cookies
         if (SENSITIVE_KEYS.includes(key)) {
-          console.warn('Sensitive key deletion blocked on web - use httpOnly cookies instead');
+          window.sessionStorage.removeItem(key);
           return;
         }
-        
+
         window.localStorage.removeItem(key);
         return;
       }

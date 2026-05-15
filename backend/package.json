@@ -4,6 +4,7 @@
   "scripts": {
     "dev": "ts-node-dev --respawn src/server.ts",
     "build": "tsc",
+    "pm2:start": "node -e \"require('fs').mkdirSync('logs', { recursive: true });\" && pm2 start ecosystem.config.js",
     "start": "node dist/server.js"
   },
   "dependencies": {
