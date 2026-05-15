@@ -133,10 +133,14 @@ const ensureSampleNotifications = async (user: any) => {
 
 // This endpoint is meant to be called by the external grievance system.
 // It receives either a specific userId, or a role to broadcast to all users of that role.
-export const sendNotification = async (req: Request, res: Response) => {
+export const sendNotification = async (req: AuthRequest, res: Response) => {
   const { userId, role, title, body, data } = req.body;
 
   try {
+    if (role && req.service?.role !== 'admin') {
+      return res.status(403).json({ message: 'Not authorized to broadcast notifications' });
+    }
+
     if (userId) {
       const user = await User.findById(userId);
       if (!user) return res.status(404).json({ message: 'User not found' });
@@ -156,7 +160,25 @@ export const sendNotification = async (req: Request, res: Response) => {
       for (let i = 0; i < users.length; i += BATCH_SIZE) {
         const batch = users.slice(i, i + BATCH_SIZE);
         const pushPromises = batch.map(u => sendPushNotification(u._id.toString(), title, body, data));
-        await Promise.allSettled(pushPromises); // allSettled ensures one failed token doesn't reject the batch
+        const results = await Promise.allSettled(pushPromises);
+        results.forEach((result, index) => {
+          const targetUserId = batch[index]._id.toString();
+          if (result.status === 'rejected') {
+            console.error('Failed to send push notification', {
+              userId: targetUserId,
+              title,
+              body,
+              error: result.reason,
+            });
+          } else if (result.status === 'fulfilled' && result.value && typeof result.value === 'object' && 'error' in result.value) {
+            console.error('Push notification returned error', {
+              userId: targetUserId,
+              title,
+              body,
+              details: (result.value as any).error,
+            });
+          }
+        });
       }
 
     } else {

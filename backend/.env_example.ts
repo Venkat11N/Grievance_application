@@ -7,4 +7,6 @@
 // FEATURE_FLAG_SAMPLE_NOTIFICATIONS=false # Enables sample grievance notifications for local/demo users.
 // ALLOW_INSECURE_SMTP_TLS=false # Non-production/testing only: disables SMTP TLS certificate verification when true.
 // ENABLE_MAGIC_OTP=false # Enables/disables the local-only 123456 OTP shortcut.
+// SERVICE_API_KEY=your_service_api_key
+// SERVICE_API_KEY_ROLE=admin
 // EXPO_ACCESS_TOKEN=your_expo_access_token (from expo.dev)
