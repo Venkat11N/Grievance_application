@@ -151,11 +151,13 @@ export const sendNotification = async (req: Request, res: Response) => {
       const notifications = users.map(u => ({ userId: u._id, title, body, data }));
       await Notification.insertMany(notifications);
 
-      // Send push notifications concurrently for better performance
-      const pushPromises = users.map(u =>
-        sendPushNotification(u._id.toString(), title, body, data)
-      );
-      await Promise.all(pushPromises);
+      // Batch processing to prevent memory/connection exhaustion
+      const BATCH_SIZE = 100;
+      for (let i = 0; i < users.length; i += BATCH_SIZE) {
+        const batch = users.slice(i, i + BATCH_SIZE);
+        const pushPromises = batch.map(u => sendPushNotification(u._id.toString(), title, body, data));
+        await Promise.allSettled(pushPromises); // allSettled ensures one failed token doesn't reject the batch
+      }
 
     } else {
       return res.status(400).json({ message: 'userId or role required' });
@@ -180,6 +182,7 @@ export const getMyNotifications = async (req: AuthRequest, res: Response) => {
       .limit(50);
     res.json(notifications);
   } catch (error) {
+    console.error('Failed to fetch notifications:', error);
     res.status(500).json({ message: 'Failed to fetch notifications' });
   }
 };

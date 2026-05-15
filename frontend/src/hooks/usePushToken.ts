@@ -1,7 +1,14 @@
 import * as Notifications from 'expo-notifications';
+import { Platform } from 'react-native';
 import { notificationService } from '../services/notification';
 
 export const registerPushToken = async () => {
+  // Skip push token registration on web
+  if (Platform.OS === 'web') {
+    console.log('Push token registration skipped on web platform');
+    return;
+  }
+
   try {
     // Request permission
     const { status } = await Notifications.requestPermissionsAsync();

@@ -128,7 +128,10 @@ export const verifyOtp = async (req: Request, res: Response) => {
       user.mobile = mobile;
       await user.save();
     }
-    const secret = process.env.JWT_SECRET || 'default_jwt_secret_key_for_dev';
+    const secret = process.env.JWT_SECRET;
+    if (!secret) {
+      throw new Error('JWT_SECRET must be defined in environment variables');
+    }
     const token = jwt.sign({ userId: user._id }, secret, { expiresIn: '30d' });
     
     // Send test notification after successful registration
@@ -156,7 +159,10 @@ export const login = async (req: Request, res: Response) => {
     if (!user) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
-    const secret = process.env.JWT_SECRET || 'default_jwt_secret_key_for_dev';
+    const secret = process.env.JWT_SECRET;
+    if (!secret) {
+      throw new Error('JWT_SECRET must be defined in environment variables');
+    }
     const token = jwt.sign({ userId: user._id }, secret, { expiresIn: '30d' });
     
     // Send test notification after successful login

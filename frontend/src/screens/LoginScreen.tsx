@@ -43,7 +43,11 @@ export default function LoginScreen() {
 
     const normalizedEmail = email.trim().toLowerCase();
     if (!normalizedEmail) {
-      Alert.alert('Error', 'Please enter your email');
+      Alert.alert('Error', 'Please enter your email address');
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+      Alert.alert('Error', 'Please enter a valid email address');
       return;
     }
 
@@ -56,7 +60,9 @@ export default function LoginScreen() {
       setResendCooldownSeconds(30);
       Alert.alert('Success', 'OTP sent to your email');
     } catch (error: any) {
-      Alert.alert('Error', error.response?.data?.message || error.message || 'Failed to send OTP');
+      console.error('OTP request error:', error);
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to send OTP';
+      Alert.alert('Login Failed', errorMessage);
     } finally {
       setLoading(false);
     }
